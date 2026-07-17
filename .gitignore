@@ -3,6 +3,7 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+.ruff_cache/
 *.egg-info/
 
 # 產生物：合成測試圖（backend/tests/synthetic.py 可重建）

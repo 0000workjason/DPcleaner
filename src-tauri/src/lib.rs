@@ -7,7 +7,8 @@
 //! Dev (`debug_assertions`): runs the engine's venv Python against the source tree.
 //! Release: runs the PyInstaller-built `dpcleaner-server.exe` next to the app exe.
 
-use std::io::{BufRead, BufReader};
+use std::fs::File;
+use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, Command, Stdio};
 use std::sync::{mpsc, Mutex};
 use std::thread;
@@ -34,6 +35,13 @@ fn backend_info(state: State<AppState>) -> Option<BackendInfo> {
     state.backend.lock().unwrap().clone()
 }
 
+fn exe_dir() -> std::path::PathBuf {
+    std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+        .unwrap_or_default()
+}
+
 fn backend_command() -> Command {
     if cfg!(debug_assertions) {
         let manifest = env!("CARGO_MANIFEST_DIR");
@@ -43,19 +51,27 @@ fn backend_command() -> Command {
         cmd.arg(script);
         cmd
     } else {
-        let exe_dir = std::env::current_exe()
-            .ok()
-            .and_then(|p| p.parent().map(|p| p.to_path_buf()))
-            .unwrap_or_default();
-        Command::new(exe_dir.join("dpcleaner-server.exe"))
+        Command::new(exe_dir().join("dpcleaner-server.exe"))
     }
+}
+
+/// Path to the log file capturing the Python backend's stderr, so a crash
+/// (missing dependency, traceback on startup, ...) is diagnosable instead of
+/// silently swallowed. Overwritten fresh on every launch.
+fn backend_log_path() -> std::path::PathBuf {
+    exe_dir().join("dpcleaner-backend.log")
 }
 
 /// Start the backend and block (in the caller's thread) until it prints its
 /// handshake line, then keep draining its stdout so the pipe never blocks it.
+/// stderr is drained into `backend_log_path()` (and echoed to our own stderr)
+/// so failures are diagnosable even though the app runs without a console.
 fn spawn_backend() -> Option<(Child, BackendInfo)> {
+    let log_path = backend_log_path();
+    let mut log_file = File::create(&log_path).ok();
+
     let mut cmd = backend_command();
-    cmd.stdout(Stdio::piped()).stderr(Stdio::null());
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -66,11 +82,16 @@ fn spawn_backend() -> Option<(Child, BackendInfo)> {
     let mut child = match cmd.spawn() {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("dpcleaner: failed to spawn backend: {e}");
+            let msg = format!("dpcleaner: failed to spawn backend: {e}");
+            eprintln!("{msg}");
+            if let Some(f) = log_file.as_mut() {
+                let _ = writeln!(f, "{msg}");
+            }
             return None;
         }
     };
     let stdout = child.stdout.take()?;
+    let stderr = child.stderr.take();
     let (tx, rx) = mpsc::channel::<BackendInfo>();
 
     thread::spawn(move || {
@@ -95,6 +116,19 @@ fn spawn_backend() -> Option<(Child, BackendInfo)> {
             // keep looping to drain remaining stdout
         }
     });
+
+    if let Some(stderr) = stderr {
+        thread::spawn(move || {
+            let reader = BufReader::new(stderr);
+            for line in reader.lines().map_while(Result::ok) {
+                eprintln!("[dpcleaner backend] {line}");
+                if let Some(f) = log_file.as_mut() {
+                    let _ = writeln!(f, "{line}");
+                    let _ = f.flush();
+                }
+            }
+        });
+    }
 
     // Generous: first run imports torch and may download the model.
     let info = rx.recv_timeout(Duration::from_secs(120)).ok()?;

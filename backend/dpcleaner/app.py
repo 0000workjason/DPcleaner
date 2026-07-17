@@ -119,7 +119,15 @@ async def ws_progress(ws: WebSocket):
                 # one final frame already sent; stop pushing until next scan
                 if p["phase"] != "idle":
                     break
-            await asyncio.sleep(0.12)
+            # Wait via receive() rather than plain sleep so an abrupt
+            # disconnect (peer vanishes without a clean close, e.g. a crash)
+            # is detected promptly -- send() alone doesn't reliably raise on
+            # a connection the peer already dropped, which otherwise leaves
+            # this loop spinning forever trying to send into the void.
+            try:
+                await asyncio.wait_for(ws.receive(), timeout=0.12)
+            except asyncio.TimeoutError:
+                pass
     except WebSocketDisconnect:
         pass
     except Exception:
