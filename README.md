@@ -41,8 +41,6 @@ backend/.venv/Scripts/pip install torch torchvision   # 沒有顯卡，用 CPU �
 backend/.venv/Scripts/pip install -r backend/requirements.txt
 ```
 
-> ⚠️ `src-tauri/icons/*` 目前是驗證階段生成的實心色塊佔位圖，還不是正式圖示，之後要換成真的 app icon。
-
 ## 開發
 
 ```bash
@@ -52,6 +50,7 @@ npm run tauri dev
 ## 測試
 
 ```bash
+npm run test                                    # Vitest + Testing Library（前端：store/groups 邏輯 + 全部元件）
 backend/.venv/Scripts/python -m pytest backend/tests
 ```
 
