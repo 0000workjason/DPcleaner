@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=78.1.1"]  # >=78.1.1 fixes CVE-2025-47273 (PackageIndex path traversal)
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dpcleaner"
+version = "0.1.0"
+description = "Near-duplicate illustration finder (SSCD embeddings) for Pixiv/Twitter art"
+requires-python = ">=3.10"
+
+[tool.setuptools]
+packages = ["dpcleaner"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100

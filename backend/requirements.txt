@@ -1,0 +1,19 @@
+# Install torch + torchvision FIRST with the CUDA build (see README):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+# Then: pip install -r requirements.txt
+
+numpy>=1.26
+# Pillow parses untrusted images (Pixiv/Twitter saves) via native decoders, so
+# keep the floor on a line that has the known image-decoder CVEs fixed.
+Pillow>=11.0
+send2trash>=1.8
+
+# Desktop backend (Tauri sidecar): local HTTP/WebSocket service over the engine.
+fastapi>=0.110
+uvicorn[standard]>=0.27
+websockets>=12
+
+# Dev / tests
+httpx>=0.27
+pytest>=8.0
+ruff>=0.9

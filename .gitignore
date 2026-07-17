@@ -1,0 +1,30 @@
+# ── Python（backend）──────────────────────────
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# 產生物：合成測試圖（backend/tests/synthetic.py 可重建）
+**/tests/_selftest/
+
+# Embedding 快取在 ~/.dpcleaner_cache.sqlite（repo 外）
+
+# ── 前端（desktop）────────────────────────────
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ── Logs ─────────────────────────────────────
+*.log
+logs/
+
+# ── 編輯器 / OS ───────────────────────────────
+**/.vscode/*
+!**/.vscode/extensions.json
+.idea/
+.DS_Store
+
+# ── Claude Code 執行期暫存 ─────────────────────
+.claude/
