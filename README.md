@@ -4,6 +4,8 @@
 
 Windows 桌面應用，Tauri（Rust）殼 + Python 後端（FastAPI）+ React 前端。
 
+> 個人自學 side project，主要目的是練習跨語言（Rust / Python / TypeScript）整合與工程實務，不是正式維護中的產品。
+
 ## 架構
 
 ```
@@ -67,3 +69,7 @@ cd src-tauri && cargo clippy                  # clippy（Rust，需 rustup 內�
 ## CI
 
 `.github/workflows/ci.yml` 在每次 push / PR 時自動跑三個獨立 job：前端（tsc、eslint、prettier、vitest、build）、後端（ruff、pytest，CPU 版 torch）、Rust（cargo check、clippy）。需要把這個 repo 推到 GitHub 才會實際觸發。
+
+## License
+
+[PolyForm Noncommercial License 1.0.0](LICENSE) —— 允許非商業用途（學習、個人使用、修改），禁止商業使用。
