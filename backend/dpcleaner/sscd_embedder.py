@@ -15,6 +15,7 @@ Implements the ``interfaces.embedder.Embedder`` port.
 
 from __future__ import annotations
 
+import logging
 import os
 import io
 import hashlib
@@ -23,6 +24,8 @@ import numpy as np
 from PIL import Image, ImageOps, ImageFile
 
 import torch
+
+logger = logging.getLogger(__name__)
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -134,7 +137,8 @@ class SSCDEmbedder:
                 dims[sf.path] = img.size
                 t_normal = self.transform(img)
                 t_flip = self.transform(ImageOps.mirror(img))
-            except Exception:
+            except Exception as e:  # noqa: BLE001 - unreadable image, skip it
+                logger.warning("skipping unreadable image %s: %s", sf.path, e)
                 done += 1
                 if progress_cb:
                     progress_cb(done, total)

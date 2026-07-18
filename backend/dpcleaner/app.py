@@ -10,6 +10,7 @@ is a no-op.
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException
@@ -22,6 +23,8 @@ from .config_store import load_config, save_config
 from .container import dedupe, rename
 from .serializers import groups_to_dict, progress_to_dict
 from . import thumbs
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="dpcleaner backend", version=__version__)
 
@@ -131,7 +134,7 @@ async def ws_progress(ws: WebSocket):
     except WebSocketDisconnect:
         pass
     except Exception:
-        pass
+        logger.exception("ws_progress crashed")
 
 
 # ---- groups / stats ----

@@ -14,6 +14,7 @@ picks which copies to remove.
 
 from __future__ import annotations
 
+import logging
 import threading
 from typing import Callable
 
@@ -25,6 +26,8 @@ from .embedder import Embedder
 from .embedding_repo import EmbeddingRepository
 from .scanner import ImageScanner
 from .trash_gateway_port import TrashGateway
+
+logger = logging.getLogger(__name__)
 
 
 class _Cancelled(Exception):
@@ -79,6 +82,7 @@ class DedupeService:
             self.progress.phase = "cancelled"
             self.progress.status = "已取消"
         except Exception as e:  # noqa: BLE001
+            logger.exception("scan failed")
             self.progress.phase = "error"
             self.progress.error = str(e)
 

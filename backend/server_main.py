@@ -11,6 +11,7 @@ by PyInstaller as the Tauri externalBin.
 
 from __future__ import annotations
 
+import logging
 import os
 import secrets
 import socket
@@ -29,6 +30,12 @@ def _bind_loopback() -> socket.socket:
 
 
 def main() -> None:
+    # Root logger config so every dpcleaner.* logger's output lands on stderr
+    # (which the Tauri shell captures to dpcleaner-backend.log) with a
+    # timestamp instead of being silently dropped.
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
     sock = _bind_loopback()
     port = sock.getsockname()[1]
     # Token: honour one injected by the parent, else mint our own.
