@@ -63,3 +63,7 @@ backend/.venv/Scripts/ruff check backend      # ruff lint（後端）
 backend/.venv/Scripts/ruff format backend     # ruff format（後端）
 cd src-tauri && cargo clippy                  # clippy（Rust，需 rustup 內建元件）
 ```
+
+## CI
+
+`.github/workflows/ci.yml` 在每次 push / PR 時自動跑三個獨立 job：前端（tsc、eslint、prettier、vitest、build）、後端（ruff、pytest，CPU 版 torch）、Rust（cargo check、clippy）。需要把這個 repo 推到 GitHub 才會實際觸發。
