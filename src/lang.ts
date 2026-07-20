@@ -3,9 +3,9 @@
 export type Lang = "zh" | "zh-Hans" | "en" | "ja";
 
 export const LANGS: { value: Lang; label: string }[] = [
+  { value: "en", label: "English" },
   { value: "zh", label: "繁體中文" },
   { value: "zh-Hans", label: "简体中文" },
-  { value: "en", label: "English" },
   { value: "ja", label: "日本語" },
 ];
 

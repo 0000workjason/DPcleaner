@@ -102,7 +102,7 @@ describe("selection", () => {
 describe("startScan", () => {
   it("refuses to scan with no folders and leaves the screen alone", async () => {
     await useStore.getState().startScan();
-    expect(useStore.getState().toast).toContain("資料夾");
+    expect(useStore.getState().toast).toContain("folder");
     expect(api.scan).not.toHaveBeenCalled();
   });
 
@@ -311,7 +311,7 @@ describe("init", () => {
     const s = useStore.getState();
     expect(s.folders).toEqual([]);
     expect(s.threshold).toBe(0.6);
-    expect(s.lang).toBe("zh");
+    expect(s.lang).toBe("en");
   });
 
   it("sets a boot error when the backend never comes up", async () => {

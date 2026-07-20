@@ -52,14 +52,14 @@ function makeGroup(over: Partial<Group> = {}): Group {
 describe("GroupCard", () => {
   it("shows member count, similarity range, and total size", () => {
     render(<GroupCard group={makeGroup()} />);
-    expect(screen.getByText("2 張")).toBeInTheDocument();
-    expect(screen.getByText("相似度 90%–99%")).toBeInTheDocument();
-    expect(screen.getByText("合計 2.9 KB")).toBeInTheDocument();
+    expect(screen.getByText("2 images")).toBeInTheDocument();
+    expect(screen.getByText("Similarity 90%–99%")).toBeInTheDocument();
+    expect(screen.getByText("Total 2.9 KB")).toBeInTheDocument();
   });
 
   it("collapses the similarity range when min and max round to the same value", () => {
     render(<GroupCard group={makeGroup({ sim_min: 0.95, sim_max: 0.951 })} />);
-    expect(screen.getByText("相似度 95%")).toBeInTheDocument();
+    expect(screen.getByText("Similarity 95%")).toBeInTheDocument();
   });
 
   it("clicking a tile toggles its selection", async () => {
@@ -81,19 +81,19 @@ describe("GroupCard", () => {
   it("select/deselect group toggles every member", async () => {
     const user = userEvent.setup();
     render(<GroupCard group={makeGroup()} />);
-    await user.click(screen.getByText("全選此組"));
+    await user.click(screen.getByText("Select group"));
     expect([...useStore.getState().selection].sort()).toEqual([
       "a.png",
       "b.png",
     ]);
-    await user.click(screen.getByText("取消全選"));
+    await user.click(screen.getByText("Deselect group"));
     expect(useStore.getState().selection.size).toBe(0);
   });
 
   it("compare button opens the compare viewer with all members", async () => {
     const user = userEvent.setup();
     render(<GroupCard group={makeGroup()} />);
-    await user.click(screen.getByText("並排比對"));
+    await user.click(screen.getByText("Compare"));
     expect(useStore.getState().compare).toEqual(["a.png", "b.png"]);
   });
 

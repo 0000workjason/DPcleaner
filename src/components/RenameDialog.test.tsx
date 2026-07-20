@@ -83,7 +83,9 @@ describe("RenameDialog", () => {
     act(() => useStore.setState({ renameTarget: "C:/pics" }));
     render(<RenameDialog />);
     await tick(180);
-    expect(screen.getByText("這個資料夾沒有圖片檔。")).toBeInTheDocument();
+    expect(
+      screen.getByText("No image files in this folder."),
+    ).toBeInTheDocument();
   });
 
   it("warns about naming conflicts", async () => {
@@ -96,7 +98,9 @@ describe("RenameDialog", () => {
     render(<RenameDialog />);
     await tick(180);
     expect(
-      screen.getByText("1 個目標檔名已被其他檔案占用，將略過不覆蓋。"),
+      screen.getByText(
+        "1 target name(s) already taken by other files — they will be skipped, not overwritten.",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -106,7 +110,7 @@ describe("RenameDialog", () => {
     await tick(180);
     expect(api.renamePreview).toHaveBeenCalledTimes(1);
 
-    fireEvent.change(screen.getByPlaceholderText("自動"), {
+    fireEvent.change(screen.getByPlaceholderText("auto"), {
       target: { value: "9" },
     });
     await tick(180);
@@ -133,8 +137,8 @@ describe("RenameDialog", () => {
     render(<RenameDialog />);
     await tick(180);
 
-    await click(screen.getByText("套用"));
-    expect(screen.getByText("已重新命名 1 個檔案。")).toBeInTheDocument();
+    await click(screen.getByText("Apply"));
+    expect(screen.getByText("Renamed 1 files.")).toBeInTheDocument();
     expect(useStore.getState().toast).toBeNull();
   });
 
@@ -154,9 +158,9 @@ describe("RenameDialog", () => {
     render(<RenameDialog />);
     await tick(180);
 
-    await click(screen.getByText("套用"));
-    expect(useStore.getState().toast).toBe("沒有需要重新命名的檔案");
-    expect(screen.queryByText("完成")).not.toBeInTheDocument();
+    await click(screen.getByText("Apply"));
+    expect(useStore.getState().toast).toBe("Nothing to rename");
+    expect(screen.queryByText("Done")).not.toBeInTheDocument();
   });
 
   it("shows an error toast when apply throws", async () => {
@@ -170,7 +174,7 @@ describe("RenameDialog", () => {
     render(<RenameDialog />);
     await tick(180);
 
-    await click(screen.getByText("套用"));
+    await click(screen.getByText("Apply"));
     expect(useStore.getState().toast).toContain("locked");
   });
 
@@ -195,11 +199,11 @@ describe("RenameDialog", () => {
     render(<RenameDialog />);
     await tick(180);
 
-    await click(screen.getByText("套用"));
-    await click(screen.getByText("↩ 復原這次命名"));
+    await click(screen.getByText("Apply"));
+    await click(screen.getByText("↩ Undo this rename"));
 
     expect(api.renameUndo).toHaveBeenCalledWith("batch1");
-    expect(useStore.getState().toast).toBe("已復原這次命名");
+    expect(useStore.getState().toast).toBe("Rename undone");
     expect(useStore.getState().renameTarget).toBeNull();
   });
 
@@ -207,7 +211,7 @@ describe("RenameDialog", () => {
     act(() => useStore.setState({ renameTarget: "C:/pics" }));
     render(<RenameDialog />);
     await tick(180);
-    await click(screen.getByText("取消"));
+    await click(screen.getByText("Cancel"));
     expect(useStore.getState().renameTarget).toBeNull();
   });
 });

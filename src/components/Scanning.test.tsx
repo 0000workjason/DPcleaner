@@ -40,7 +40,7 @@ describe("Scanning", () => {
   it("shows the idle/preparing label at 0% before anything is reported", () => {
     render(<Scanning />);
     expect(screen.getByText("0%")).toBeInTheDocument();
-    expect(screen.getByText("準備中…")).toBeInTheDocument();
+    expect(screen.getByText("Preparing…")).toBeInTheDocument();
   });
 
   it("shows scanning / embedding (with counts) / grouping labels", () => {
@@ -55,7 +55,7 @@ describe("Scanning", () => {
         error: "",
       }),
     );
-    expect(screen.getByText("掃描資料夾中…")).toBeInTheDocument();
+    expect(screen.getByText("Scanning folders…")).toBeInTheDocument();
 
     act(() =>
       useStore.getState().setProgress({
@@ -66,7 +66,7 @@ describe("Scanning", () => {
         error: "",
       }),
     );
-    expect(screen.getByText("計算特徵中 3/10")).toBeInTheDocument();
+    expect(screen.getByText("Computing embeddings 3/10")).toBeInTheDocument();
     expect(screen.getByText("30%")).toBeInTheDocument();
 
     act(() =>
@@ -78,14 +78,14 @@ describe("Scanning", () => {
         error: "",
       }),
     );
-    expect(screen.getByText("比對中…")).toBeInTheDocument();
+    expect(screen.getByText("Comparing…")).toBeInTheDocument();
     expect(screen.getByText("100%")).toBeInTheDocument();
   });
 
   it("stop button cancels the scan", async () => {
     const user = userEvent.setup();
     render(<Scanning />);
-    await user.click(screen.getByText("停止"));
+    await user.click(screen.getByText("Stop"));
     expect(api.cancelScan).toHaveBeenCalledTimes(1);
   });
 });

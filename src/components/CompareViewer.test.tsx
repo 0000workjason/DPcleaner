@@ -32,7 +32,7 @@ describe("CompareViewer", () => {
     expect(screen.getByText("b.png")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "2 張並排 · 滾輪縮放 · 拖曳平移 · 0 重置 · 右鍵/Esc 關閉",
+        "2 side by side · wheel to zoom · drag to pan · 0 to reset · right-click/Esc to close",
       ),
     ).toBeInTheDocument();
   });
@@ -41,7 +41,7 @@ describe("CompareViewer", () => {
     const user = userEvent.setup();
     act(() => useStore.setState({ compare: ["a.png"] }));
     render(<CompareViewer />);
-    await user.click(screen.getByText("關閉 ✕"));
+    await user.click(screen.getByText("Close ✕"));
     expect(useStore.getState().compare).toBeNull();
   });
 

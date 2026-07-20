@@ -31,16 +31,16 @@ describe("Settings", () => {
   it("shows the settings form when open", () => {
     act(() => useStore.setState({ settingsOpen: true }));
     render(<Settings />);
-    expect(screen.getByText("設定")).toBeInTheDocument();
+    expect(screen.getByText("Settings")).toBeInTheDocument();
   });
 
   it("closes when the backdrop is clicked but not when the panel is clicked", async () => {
     const user = userEvent.setup();
     act(() => useStore.setState({ settingsOpen: true }));
     render(<Settings />);
-    await user.click(screen.getByText("語言")); // inside the panel
+    await user.click(screen.getByText("Language")); // inside the panel
     expect(useStore.getState().settingsOpen).toBe(true);
-    await user.click(screen.getByText("關閉"));
+    await user.click(screen.getByText("Close"));
     expect(useStore.getState().settingsOpen).toBe(false);
   });
 
@@ -48,16 +48,16 @@ describe("Settings", () => {
     const user = userEvent.setup();
     act(() => useStore.setState({ settingsOpen: true }));
     render(<Settings />);
-    await user.selectOptions(screen.getByDisplayValue("繁體中文"), "en");
-    expect(useStore.getState().lang).toBe("en");
-    expect(api.saveSettings).toHaveBeenCalledWith({ lang: "en" });
+    await user.selectOptions(screen.getByDisplayValue("English"), "zh");
+    expect(useStore.getState().lang).toBe("zh");
+    expect(api.saveSettings).toHaveBeenCalledWith({ lang: "zh" });
   });
 
   it("changes theme via saveSetting", async () => {
     const user = userEvent.setup();
     act(() => useStore.setState({ settingsOpen: true }));
     render(<Settings />);
-    await user.selectOptions(screen.getByDisplayValue("深色"), "light");
+    await user.selectOptions(screen.getByDisplayValue("Dark"), "light");
     expect(api.saveSettings).toHaveBeenCalledWith({ theme: "light" });
   });
 

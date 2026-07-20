@@ -54,7 +54,7 @@ describe("Results", () => {
     const user = userEvent.setup();
     act(() => useStore.setState({ data: dataWith([]), screen: "results" }));
     render(<Results />);
-    await user.click(screen.getByText("← 返回"));
+    await user.click(screen.getByText("← Back"));
     expect(useStore.getState().screen).toBe("folders");
   });
 
@@ -62,7 +62,7 @@ describe("Results", () => {
     act(() => useStore.setState({ data: dataWith([]) }));
     render(<Results />);
     expect(
-      screen.getByText("找不到重複的圖片，試著調低門檻。"),
+      screen.getByText("No duplicates found — try lowering the threshold."),
     ).toBeInTheDocument();
   });
 
@@ -82,7 +82,9 @@ describe("Results", () => {
       }),
     );
     render(<Results />);
-    expect(screen.getByText("沒有符合篩選條件的群組。")).toBeInTheDocument();
+    expect(
+      screen.getByText("No groups match the current filters."),
+    ).toBeInTheDocument();
   });
 
   it("renders one card per visible group, newest-first by default", () => {
@@ -111,7 +113,9 @@ describe("Results", () => {
       }),
     );
     render(<Results />);
-    const names = screen.getAllByText(/^\d 張$/).map((el) => el.textContent);
-    expect(names).toEqual(["3 張", "2 張"]); // newer (3 members) sorts first
+    const names = screen
+      .getAllByText(/^\d images$/)
+      .map((el) => el.textContent);
+    expect(names).toEqual(["3 images", "2 images"]); // newer (3 members) sorts first
   });
 });

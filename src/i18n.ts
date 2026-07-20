@@ -400,7 +400,7 @@ const DICTS: Record<Lang, Dict> = { zh, "zh-Hans": zhHans, en, ja };
 export type Params = Record<string, string | number>;
 
 export function translate(lang: Lang, key: string, params?: Params): string {
-  let s = DICTS[lang]?.[key] ?? zh[key] ?? key;
+  let s = DICTS[lang]?.[key] ?? en[key] ?? key;
   if (params) {
     for (const k of Object.keys(params)) {
       s = s.split(`{${k}}`).join(String(params[k]));

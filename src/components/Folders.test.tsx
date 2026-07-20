@@ -42,10 +42,10 @@ describe("Folders", () => {
   it("shows a placeholder and a disabled start/clear when there are no folders", () => {
     render(<Folders />);
     expect(
-      screen.getByText("點擊新增資料夾，或把資料夾拖進來"),
+      screen.getByText("Click to add folders, or drag folders here"),
     ).toBeInTheDocument();
-    expect(screen.getByText("開始掃描")).toBeDisabled();
-    expect(screen.getByText("全部移除")).toBeDisabled();
+    expect(screen.getByText("Start scan")).toBeDisabled();
+    expect(screen.getByText("Clear all")).toBeDisabled();
   });
 
   it("lists each folder and lets you remove one", async () => {
@@ -55,7 +55,7 @@ describe("Folders", () => {
     expect(screen.getByText("C:/a")).toBeInTheDocument();
     expect(screen.getByText("C:/b")).toBeInTheDocument();
 
-    const removeButtons = screen.getAllByText("移除");
+    const removeButtons = screen.getAllByText("Remove");
     await user.click(removeButtons[0]);
     expect(useStore.getState().folders).toEqual(["C:/b"]);
   });
@@ -64,7 +64,7 @@ describe("Folders", () => {
     const user = userEvent.setup();
     vi.mocked(open).mockResolvedValue(["C:/picked-a", "C:/picked-b"]);
     render(<Folders />);
-    await user.click(screen.getByText("＋ 新增資料夾"));
+    await user.click(screen.getByText("＋ Add folder"));
     expect(useStore.getState().folders).toEqual(["C:/picked-a", "C:/picked-b"]);
   });
 
@@ -72,7 +72,7 @@ describe("Folders", () => {
     const user = userEvent.setup();
     vi.mocked(open).mockResolvedValue("C:/picked-only");
     render(<Folders />);
-    await user.click(screen.getByText("＋ 新增資料夾"));
+    await user.click(screen.getByText("＋ Add folder"));
     expect(useStore.getState().folders).toEqual(["C:/picked-only"]);
   });
 
@@ -98,7 +98,7 @@ describe("Folders", () => {
     const user = userEvent.setup();
     act(() => useStore.setState({ folders: ["C:/a"] }));
     render(<Folders />);
-    await user.click(screen.getByText("全部移除"));
+    await user.click(screen.getByText("Clear all"));
     expect(useStore.getState().folders).toEqual([]);
   });
 
@@ -112,7 +112,7 @@ describe("Folders", () => {
     const user = userEvent.setup();
     act(() => useStore.setState({ folders: ["C:/a"] }));
     render(<Folders />);
-    await user.click(screen.getByText("開始掃描"));
+    await user.click(screen.getByText("Start scan"));
     expect(api.scan).toHaveBeenCalledWith(["C:/a"], undefined);
     expect(useStore.getState().screen).toBe("scanning");
   });
@@ -121,14 +121,14 @@ describe("Folders", () => {
     const user = userEvent.setup();
     act(() => useStore.setState({ folders: ["C:/a"] }));
     render(<Folders />);
-    await user.click(screen.getByText("重新命名"));
+    await user.click(screen.getByText("Rename"));
     expect(useStore.getState().renameTarget).toBe("C:/a");
   });
 
   it("settings button opens the settings modal", async () => {
     const user = userEvent.setup();
     render(<Folders />);
-    await user.click(screen.getByText("⚙ 設定"));
+    await user.click(screen.getByText("⚙ Settings"));
     expect(useStore.getState().settingsOpen).toBe(true);
   });
 });

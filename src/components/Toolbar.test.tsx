@@ -64,14 +64,14 @@ describe("Toolbar", () => {
   it("typing in the search box updates view.search", async () => {
     const user = userEvent.setup();
     render(<Toolbar />);
-    await user.type(screen.getByPlaceholderText("搜尋檔名…"), "cat");
+    await user.type(screen.getByPlaceholderText("Search filename…"), "cat");
     expect(useStore.getState().view.search).toBe("cat");
   });
 
   it("lists the distinct extensions found in the current data", () => {
     act(() => useStore.setState({ data: data([".jpg", ".png", ".jpg"]) }));
     render(<Toolbar />);
-    const extSelect = screen.getByText("全部格式").closest("select")!;
+    const extSelect = screen.getByText("All formats").closest("select")!;
     const options = [...extSelect.options].map((o) => o.value);
     expect(options.sort()).toEqual(["", ".jpg", ".png"]);
   });
@@ -79,7 +79,7 @@ describe("Toolbar", () => {
   it("opens settings when the settings button is clicked", async () => {
     const user = userEvent.setup();
     render(<Toolbar />);
-    await user.click(screen.getByTitle("設定"));
+    await user.click(screen.getByTitle("Settings"));
     expect(useStore.getState().settingsOpen).toBe(true);
   });
 

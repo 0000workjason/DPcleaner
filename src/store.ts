@@ -82,7 +82,7 @@ export const useStore = create<State>((set, get) => ({
   ready: false,
   bootError: "",
   screen: "boot",
-  lang: "zh",
+  lang: "en",
   folders: [],
   threshold: 0.6,
   device: null,
@@ -107,7 +107,7 @@ export const useStore = create<State>((set, get) => ({
         settings: s,
         folders: Array.isArray(s.folders) ? s.folders : [],
         threshold: typeof s.threshold === "number" ? s.threshold : 0.6,
-        lang: isLang(s.lang) ? s.lang : "zh",
+        lang: isLang(s.lang) ? s.lang : "en",
         screen: "folders",
       });
     } catch (e) {

@@ -33,22 +33,22 @@ beforeEach(() => {
 describe("BatchBar", () => {
   it("disables clear/undo/trash when there is nothing to act on", () => {
     render(<BatchBar />);
-    expect(screen.getByText("清除選取")).toBeDisabled();
-    expect(screen.getByText("↩ 復原")).toBeDisabled();
-    expect(screen.getByText("丟回收筒（0）")).toBeDisabled();
+    expect(screen.getByText("Clear selection")).toBeDisabled();
+    expect(screen.getByText("↩ Undo")).toBeDisabled();
+    expect(screen.getByText("Move to Recycle Bin（0）")).toBeDisabled();
   });
 
   it("enables clear/trash and shows the selection count", () => {
     act(() => useStore.setState({ selection: new Set(["a.png", "b.png"]) }));
     render(<BatchBar />);
-    expect(screen.getByText("清除選取")).toBeEnabled();
-    expect(screen.getByText("丟回收筒（2）")).toBeEnabled();
+    expect(screen.getByText("Clear selection")).toBeEnabled();
+    expect(screen.getByText("Move to Recycle Bin（2）")).toBeEnabled();
   });
 
   it("shows the undo count once there is something to undo", () => {
     act(() => useStore.setState({ undoCount: 3 }));
     render(<BatchBar />);
-    expect(screen.getByText("↩ 復原（3）")).toBeEnabled();
+    expect(screen.getByText("↩ Undo（3）")).toBeEnabled();
   });
 
   it("disables everything while busy", () => {
@@ -60,19 +60,19 @@ describe("BatchBar", () => {
       }),
     );
     render(<BatchBar />);
-    expect(screen.getByText("全選")).toBeDisabled();
-    expect(screen.getByText("清除選取")).toBeDisabled();
-    expect(screen.getByText(/↩ 復原/)).toBeDisabled();
-    expect(screen.getByText(/丟回收筒/)).toBeDisabled();
+    expect(screen.getByText("Select all")).toBeDisabled();
+    expect(screen.getByText("Clear selection")).toBeDisabled();
+    expect(screen.getByText(/↩ Undo/)).toBeDisabled();
+    expect(screen.getByText(/Move to Recycle Bin/)).toBeDisabled();
   });
 
   it("clicking trash opens a confirmation, and cancelling does nothing", async () => {
     const user = userEvent.setup();
     act(() => useStore.setState({ selection: new Set(["a.png"]) }));
     render(<BatchBar />);
-    await user.click(screen.getByText("丟回收筒（1）"));
-    expect(screen.getByText("丟到回收筒")).toBeInTheDocument();
-    await user.click(screen.getByText("取消"));
+    await user.click(screen.getByText("Move to Recycle Bin（1）"));
+    expect(screen.getByText("Move to Recycle Bin")).toBeInTheDocument();
+    await user.click(screen.getByText("Cancel"));
     expect(api.trash).not.toHaveBeenCalled();
   });
 
@@ -80,8 +80,8 @@ describe("BatchBar", () => {
     const user = userEvent.setup();
     act(() => useStore.setState({ selection: new Set(["a.png"]) }));
     render(<BatchBar />);
-    await user.click(screen.getByText("丟回收筒（1）"));
-    await user.click(screen.getByRole("button", { name: "丟回收筒" }));
+    await user.click(screen.getByText("Move to Recycle Bin（1）"));
+    await user.click(screen.getByRole("button", { name: "Move to bin" }));
     expect(api.trash).toHaveBeenCalledWith(["a.png"]);
   });
 
@@ -89,7 +89,7 @@ describe("BatchBar", () => {
     const user = userEvent.setup();
     act(() => useStore.setState({ undoCount: 1 }));
     render(<BatchBar />);
-    await user.click(screen.getByText("↩ 復原（1）"));
+    await user.click(screen.getByText("↩ Undo（1）"));
     expect(api.undo).toHaveBeenCalledTimes(1);
   });
 });

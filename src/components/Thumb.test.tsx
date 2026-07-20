@@ -24,6 +24,6 @@ describe("Thumb", () => {
     render(<Thumb path="C:/pics/a.png" />);
     fireEvent.error(screen.getByRole("img"));
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
-    expect(screen.getByText("無法預覽")).toBeInTheDocument();
+    expect(screen.getByText("No preview")).toBeInTheDocument();
   });
 });

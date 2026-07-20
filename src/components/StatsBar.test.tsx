@@ -60,8 +60,10 @@ describe("StatsBar", () => {
   it("shows group/image counts once data is present", () => {
     act(() => useStore.setState({ data: data() }));
     render(<StatsBar />);
-    expect(screen.getByText("1 群組")).toBeInTheDocument();
-    expect(screen.getByText("2 張在重複群組中")).toBeInTheDocument();
+    expect(screen.getByText("1 groups")).toBeInTheDocument();
+    expect(
+      screen.getByText("2 images in duplicate groups"),
+    ).toBeInTheDocument();
   });
 
   it("sums selected bytes and highlights the count when something is selected", () => {
@@ -69,7 +71,7 @@ describe("StatsBar", () => {
       useStore.setState({ data: data(), selection: new Set(["a.png"]) }),
     );
     render(<StatsBar />);
-    const selected = screen.getByText(/已選 1 張/);
+    const selected = screen.getByText(/1 selected/);
     expect(selected).toHaveTextContent("2.0 KB");
     expect(selected).toHaveClass("accent");
   });
@@ -77,6 +79,6 @@ describe("StatsBar", () => {
   it("stays muted when nothing is selected", () => {
     act(() => useStore.setState({ data: data() }));
     render(<StatsBar />);
-    expect(screen.getByText(/已選 0 張/)).toHaveClass("muted");
+    expect(screen.getByText(/0 selected/)).toHaveClass("muted");
   });
 });

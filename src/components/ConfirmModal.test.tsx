@@ -43,7 +43,7 @@ describe("ConfirmModal", () => {
         onCancel={onCancel}
       />,
     );
-    await user.click(screen.getByText("取消"));
+    await user.click(screen.getByText("Cancel"));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
