@@ -1,75 +1,213 @@
+<div align="center">
+
 # DPcleaner
 
-近似重複插畫偵測與清理工具（Pixiv / Twitter 圖片向）。用 SSCD copy-detection embedding 找出同一張插畫的不同版本（縮放、壓縮、裁切、調色、鏡像），讓使用者手動挑選要保留或丟到回收筒的版本，並支援資料夾內圖片的批次數字重新命名。
+![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue?style=flat-square)
+![Platform](https://img.shields.io/badge/platform-Windows-0078D6?style=flat-square&logo=windows&logoColor=white)
+![CI](https://github.com/0000workjason/DPcleaner/actions/workflows/ci.yml/badge.svg)
+![Release](https://img.shields.io/github/v/release/0000workjason/DPcleaner?style=flat-square)
+![Tauri](https://img.shields.io/badge/Tauri-24C8DB?style=flat-square&logo=tauri&logoColor=white)
+![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)
 
-Windows 桌面應用，Tauri（Rust）殼 + Python 後端（FastAPI）+ React 前端。
+**Find and clean up near-duplicate illustrations, right from your desktop.**
+A personal learning project — open source, no ads, no telemetry.
 
-> 個人自學 side project，主要目的是練習跨語言（Rust / Python / TypeScript）整合與工程實務，不是正式維護中的產品。
+[**Download**](#download) · [**Features**](#features) · [**FAQ**](#faq) · [**Development**](#development) · [**License**](#license)
 
-## 架構
+**English** | [繁體中文](README.zh-TW.md)
+
+</div>
+
+---
+
+Uses SSCD copy-detection embeddings to find different versions of the same artwork (rescaled, recompressed, cropped, recolored, mirrored) — common when saving art repeatedly from Pixiv or Twitter — so you can manually pick which copies to keep or send to the Recycle Bin.
+
+> Personal learning side project, mainly to practice cross-language (Rust / Python / TypeScript) integration and engineering practices. Not a signed, sponsored, or actively-maintained product — just built for my own taskbar... er, desktop.
+
+## Download
+
+Grab an installer (`.msi` or `-setup.exe`) from [Releases](../../releases), double-click to install, and open — no Node/Rust/Python or any dev tooling required. The Python backend is bundled as a standalone executable via PyInstaller, packaged alongside the installer.
+
+**Requirements:** Windows 10 or 11 (64-bit). The installer is **not code-signed**, so Windows SmartScreen will warn on first run ("Windows protected your PC") — click **More info → Run anyway**. Signing costs money this project doesn't have.
+
+> There's no automated release pipeline yet; installers are built locally by the maintainer (see [Building an installer](#building-an-installer)) and uploaded manually.
+
+## Screenshots
+
+<div align="center">
+  <img src="screenshots/results.png" alt="DPcleaner - duplicate groups found after a scan" width="800" />
+</div>
+
+<details>
+<summary>More screens (Folders, Scanning, Compare, batch selection)</summary>
+<br/>
+<div align="center">
+  <img src="screenshots/folders.png" alt="DPcleaner - choose folders to scan" width="800" />
+  <p><sub>Pick folders, set the similarity threshold, and start scanning.</sub></p>
+  <br/>
+  <img src="screenshots/scanning.png" alt="DPcleaner - scan progress" width="800" />
+  <p><sub>Live progress while embeddings are computed.</sub></p>
+  <br/>
+  <img src="screenshots/results-selecting.png" alt="DPcleaner - selecting images to trash" width="800" />
+  <p><sub>Select across groups and send them to the Recycle Bin, with undo.</sub></p>
+  <br/>
+  <img src="screenshots/compare.png" alt="DPcleaner - side-by-side compare view" width="800" />
+  <p><sub>Zoom and pan a group's images together, synced.</sub></p>
+</div>
+</details>
+
+## Features
+
+🔍 **Similarity scan.** SSCD copy-detection embeddings find re-saved, rescaled, recompressed, cropped, recolored, or mirrored versions of the same artwork — with a live-adjustable similarity threshold.
+
+🖼️ **Side-by-side compare.** Zoom and pan a duplicate group's images together, synced, so the same region lines up across every version.
+
+🗑️ **Batch cleanup with undo.** Select across groups, send to the system Recycle Bin, and undo with one click (or Ctrl+Z).
+
+🔢 **Batch rename with undo.** Renumber every image in a folder to a clean sequence (001, 002…), also undoable.
+
+🔎 **Filter & sort.** Narrow the results by extension, filename, or minimum group size; sort by similarity or creation time.
+
+🌐 **Multi-language.** Traditional Chinese, Simplified Chinese, English, and Japanese, with dark/light theme.
+
+## FAQ
+
+**Why does the first scan take a while?**
+The SSCD model (~94 MB) downloads on first use and gets cached locally. After that, only new/changed images need re-embedding within a session.
+
+**Is any of my data sent anywhere?**
+No. Everything runs locally — scanning, embedding, and the recycle-bin operations never leave your machine. The embedding cache is in-memory only (cleared each restart) by design, for privacy.
+
+**Why Windows only?**
+The recycle-bin integration (and its undo support) is implemented against the Windows `$Recycle.Bin` format directly. Cross-platform support isn't a current goal for this learning project.
+
+**Do I need an NVIDIA GPU?**
+No — the packaged installer bundles the CPU build of the model, which works everywhere. If you build from source, you can opt into a CUDA build for faster embedding (see [Development](#development)).
+
+## Built with
+
+[Tauri](https://tauri.app/) · [FastAPI](https://fastapi.tiangolo.com/) · [React](https://react.dev/) + [Zustand](https://github.com/pmndrs/zustand) · [PyTorch](https://pytorch.org/) · the [SSCD](https://github.com/facebookresearch/sscd-copy-detection) copy-detection model from Meta AI Research.
+
+---
+
+<details>
+<summary><h2 style="display: inline;">Development</h2> (click to expand)</summary>
+
+Everything below is only needed if you want to contribute, read the source, or build your own installer.
+
+### Architecture
 
 ```
 DPcleaner/
-├── src/            React + TypeScript 前端（Vite）
-│   └── components/ 畫面與元件（Folders、Scanning、Results 等）
-├── src-tauri/       Tauri（Rust）桌面殼，負責開視窗、拉起 Python 後端子行程
-└── backend/         Python 後端（FastAPI + SSCD embedding 引擎）
-    └── dpcleaner/   單一扁平 package：models/grouping（領域邏輯）、
-                      embedder/scanner/renamer/trash_gateway_port（介面）、
-                      fs_scanner/sscd_embedder/sqlite_repo/fs_renamer/trash_gateway（實作）、
-                      dedupe/rename（服務層）、app/container/serializers/thumbs（API 層）
+├── src/            React + TypeScript frontend (Vite)
+│   └── components/ Screens and components (Folders, Scanning, Results, etc.)
+├── src-tauri/       Tauri (Rust) desktop shell — opens the window, spawns the Python backend
+└── backend/         Python backend (FastAPI + SSCD embedding engine)
+    └── dpcleaner/   One flat package: models/grouping (domain logic),
+                      embedder/scanner/renamer/trash_gateway_port (ports/interfaces),
+                      fs_scanner/sscd_embedder/sqlite_repo/fs_renamer/trash_gateway (adapters),
+                      dedupe/rename (services), app/container/serializers/thumbs (API layer)
 ```
 
-前端透過 REST（`/scan`、`/groups`、`/trash`…）+ WebSocket（`/ws` 掃描進度）跟後端溝通；Tauri 殼只負責拉起 Python 子行程並把 port/token 透過 `backend_info` 這個 command 交給前端。
+The frontend talks to the backend over REST (`/scan`, `/groups`, `/trash`, ...) plus a WebSocket (`/ws` for scan progress). The Tauri shell's only job is to spawn the Python subprocess and hand the frontend its port/token via the `backend_info` command.
 
-## 安裝
+### Dev environment setup
 
-**前端：**
+**Frontend:**
 
 ```bash
 npm install
 ```
 
-**後端：**
+**Backend:**
 
 ```bash
 python -m venv backend/.venv
 
-# 依你的硬體選一種安裝 torch/torchvision：
-backend/.venv/Scripts/pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124   # 有 NVIDIA 顯卡
-# 或
-backend/.venv/Scripts/pip install torch torchvision   # 沒有顯卡，用 CPU 版
+# Pick one based on your hardware:
+backend/.venv/Scripts/pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124   # NVIDIA GPU
+# or
+backend/.venv/Scripts/pip install torch torchvision   # no GPU, CPU build
 
 backend/.venv/Scripts/pip install -r backend/requirements.txt
 ```
 
-## 開發
+### Running in dev
 
 ```bash
 npm run tauri dev
 ```
 
-## 測試
+### Building an installer
+
+The backend needs to be packaged into a standalone `dpcleaner-server.exe` with PyInstaller first, so Tauri can bundle it into the installer (via Tauri's [externalBin](https://tauri.app/develop/sidecar/) mechanism). **Use the CPU build of torch** for packaging, not the dev `backend/.venv` — if that one has the CUDA build installed, the resulting installer balloons to several GB and only works for people with a matching GPU.
 
 ```bash
-npm run test                                    # Vitest + Testing Library（前端：store/groups 邏輯 + 全部元件）
+# 1. Create a dedicated CPU-only venv for packaging (one-time setup)
+python -m venv backend/.venv-cpu
+backend/.venv-cpu/Scripts/pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+backend/.venv-cpu/Scripts/pip install -r backend/requirements.txt pyinstaller pyinstaller-hooks-contrib
+
+# 2. Package server_main.py into a single exe
+backend/.venv-cpu/Scripts/pyinstaller \
+  --name dpcleaner-server --onefile --noconsole \
+  --distpath backend/dist_cpu --workpath backend/build --specpath backend \
+  --paths backend backend/server_main.py
+
+# 3. Place it in Tauri's sidecar directory, suffixed with the host target triple (from `rustc -vV`)
+mkdir -p src-tauri/binaries
+cp backend/dist_cpu/dpcleaner-server.exe src-tauri/binaries/dpcleaner-server-x86_64-pc-windows-msvc.exe
+
+# 4. Full release build — .msi and -setup.exe land in src-tauri/target/release/bundle/
+npm run tauri build
+```
+
+After building, you can run `src-tauri/target/release/desktop.exe` directly (same directory layout as a real install) to quickly verify things work, without running the installer every time.
+
+### Testing
+
+```bash
+npm run test                                    # Vitest + Testing Library (frontend: store/groups logic + every component)
 backend/.venv/Scripts/python -m pytest backend/tests
 ```
 
-## Lint / Format
+### Static checks
 
 ```bash
-npm run lint            # ESLint（前端）
-npm run format           # Prettier --write（前端）
-backend/.venv/Scripts/ruff check backend      # ruff lint（後端）
-backend/.venv/Scripts/ruff format backend     # ruff format（後端）
-cd src-tauri && cargo clippy                  # clippy（Rust，需 rustup 內建元件）
+npm run lint            # ESLint (frontend)
+npm run format           # Prettier --write (frontend)
+backend/.venv/Scripts/ruff check backend      # ruff lint (backend)
+backend/.venv/Scripts/ruff format backend     # ruff format (backend)
+cd src-tauri && cargo clippy                  # clippy (Rust, needs the rustup component)
 ```
 
-## CI
+### CI
 
-`.github/workflows/ci.yml` 在每次 push / PR 時自動跑三個獨立 job：前端（tsc、eslint、prettier、vitest、build）、後端（ruff、pytest，CPU 版 torch）、Rust（cargo check、clippy）。需要把這個 repo 推到 GitHub 才會實際觸發。
+`.github/workflows/ci.yml` runs three independent jobs on every push/PR: frontend (tsc, eslint, prettier, vitest, build), backend (ruff, pytest with CPU-only torch), and Rust (cargo check, clippy).
+
+</details>
+
+---
+
+## Contributing
+
+This is a solo learning project without much bandwidth for ongoing maintenance, but issues and small pull requests (typo fixes, clearer error messages, translation corrections) are welcome.
+
+## Star History
+
+<div align="center">
+
+<a href="https://www.star-history.com/#0000workjason/DPcleaner&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=0000workjason/DPcleaner&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=0000workjason/DPcleaner&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=0000workjason/DPcleaner&type=Date" />
+  </picture>
+</a>
+
+</div>
 
 ## License
 
-[PolyForm Noncommercial License 1.0.0](LICENSE) —— 允許非商業用途（學習、個人使用、修改），禁止商業使用。
+[PolyForm Noncommercial License 1.0.0](LICENSE) — permits noncommercial use (learning, personal use, modification), prohibits commercial use.
