@@ -35,7 +35,7 @@ Grab an installer (`.msi` or `-setup.exe`) from [Releases](../../releases), doub
 
 ## How it works
 
-**1. Pick folders, set a threshold.** Click **+ Add folder** to open a folder picker, or just drag folders onto the window — add as many as you like. Each folder row has **Rename** (opens the batch-rename dialog for that folder) and **Remove** (drops it from the list); **Clear all** empties the whole list. The threshold slider (50–85%) controls how strict the match has to be: higher catches only near-identical copies, lower also catches more heavily edited variants (at the cost of more false positives). Click **Start scan** once you're ready.
+**1. Pick folders, set a threshold.** Click **+ Add folder** to open a folder picker, or just drag folders onto the window — add as many as you like. Each folder row has **Rename** (renumbers every image in that folder into a clean sequence — 001, 002... — with a live preview, adjustable start number/padding/prefix/sort order, and one-click undo) and **Remove** (drops it from the list); **Clear all** empties the whole list. The threshold slider (50–85%) controls how strict the match has to be: higher catches only near-identical copies, lower also catches more heavily edited variants (at the cost of more false positives). Click **Start scan** once you're ready.
 
 <div align="center">
   <img src="screenshots/folders.png" alt="DPcleaner - choose folders to scan" width="800" />
