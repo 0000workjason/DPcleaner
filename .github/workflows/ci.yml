@@ -43,5 +43,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
+      - name: Placeholder sidecar binary (externalBin requires the file to exist)
+        run: New-Item -ItemType File -Path binaries/dpcleaner-server-x86_64-pc-windows-msvc.exe -Force
       - run: cargo check
       - run: cargo clippy -- -D warnings
