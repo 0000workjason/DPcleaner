@@ -21,7 +21,7 @@ A personal learning project — open source, no ads, no telemetry.
 
 ---
 
-Uses SSCD copy-detection embeddings to find different versions of the same artwork (rescaled, recompressed, cropped, recolored, mirrored) — common when saving art repeatedly from Pixiv or Twitter — so you can manually pick which copies to keep or send to the Recycle Bin.
+Uses SSCD copy-detection embeddings to find different versions of the same artwork (rescaled, recompressed, cropped, recolored, mirrored), so you can manually pick which copies to keep or send to the Recycle Bin.
 
 > Personal learning side project, mainly to practice cross-language (Rust / Python / TypeScript) integration and engineering practices. Not a signed, sponsored, or actively-maintained product — just built for my own taskbar... er, desktop.
 

@@ -21,7 +21,7 @@
 
 ---
 
-用 SSCD copy-detection embedding 找出同一張插畫的不同版本（縮放、壓縮、裁切、調色、鏡像）——這在從 Pixiv 或 Twitter 反覆存圖時很常見——讓你手動挑選要保留或丟到回收筒的版本。
+用 SSCD copy-detection embedding 找出同一張插畫的不同版本（縮放、壓縮、裁切、調色、鏡像），讓你手動挑選要保留或丟到回收筒的版本。
 
 > 個人自學 side project，主要目的是練習跨語言（Rust / Python / TypeScript）整合與工程實務。沒有簽章、沒有贊助、也不是正式維護中的產品——單純是自己想要這個工具而做的。
 
