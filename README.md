@@ -35,35 +35,35 @@ Grab an installer (`.msi` or `-setup.exe`) from [Releases](../../releases), doub
 
 ## How it works
 
+**1. Pick folders, set a threshold.** Click **+ Add folder** to open a folder picker, or just drag folders onto the window — add as many as you like. Each folder row has **Rename** (opens the batch-rename dialog for that folder) and **Remove** (drops it from the list); **Clear all** empties the whole list. The threshold slider (50–85%) controls how strict the match has to be: higher catches only near-identical copies, lower also catches more heavily edited variants (at the cost of more false positives). Click **Start scan** once you're ready.
+
 <div align="center">
   <img src="screenshots/folders.png" alt="DPcleaner - choose folders to scan" width="800" />
 </div>
 
-**1. Pick folders, set a threshold.** Click **+ Add folder** or just drag folders onto the window — add as many as you like. The threshold slider (50–85%) controls how strict the match has to be: higher catches only near-identical copies, lower also catches more heavily edited variants (at the cost of more false positives).
+**2. Scan runs locally.** SSCD embeddings are computed for every image, with live progress. **Stop** cancels the scan at any point. The first scan downloads the ~94 MB model once; after that, only new or changed images need re-embedding.
 
 <div align="center">
   <img src="screenshots/scanning.png" alt="DPcleaner - scan progress" width="800" />
 </div>
 
-**2. Scan runs locally.** SSCD embeddings are computed for every image, with live progress. The first scan downloads the ~94 MB model once; after that, only new or changed images need re-embedding.
+**3. Review the duplicate groups.** Each card is a group of matching images — thumbnails, dimensions, file size, folder, and similarity range. Use the search box, the format/sort dropdowns, and **Min group** to narrow things down. Per card, **Select group** checks every image in it at once, and **Compare** opens the side-by-side viewer. **⚙ Settings** (top right) holds app-wide options like language and theme.
 
 <div align="center">
   <img src="screenshots/results.png" alt="DPcleaner - duplicate groups found after a scan" width="800" />
 </div>
 
-**3. Review the duplicate groups.** Each card is a group of matching images — thumbnails, dimensions, file size, folder, and similarity range. Filter by extension, filename, or minimum group size, and sort by similarity or creation time.
+**4. Compare side-by-side.** **Compare** opens a synced zoom/pan viewer — scroll to zoom, drag to pan, `0` resets, and every image in the group moves together so you can line up the same region across versions. **Reset** restores the default view; **Close** (or right-click/Esc) goes back to the results screen.
 
 <div align="center">
   <img src="screenshots/compare.png" alt="DPcleaner - side-by-side compare view" width="800" />
 </div>
 
-**4. Compare side-by-side.** Click **Compare** on any group to open a synced zoom/pan viewer — scroll to zoom, drag to pan, and every image in the group moves together so you can line up the same region across versions.
+**5. Select and clean up.** Check the copies you don't want, across groups if you like — **Select all** / **Clear selection** toggle everything at once, and the toolbar shows the live count and how much space you'll free. **Move to Recycle Bin** sends the checked images to the real Windows Recycle Bin, so it's fully undoable — click **Undo** or press Ctrl+Z.
 
 <div align="center">
   <img src="screenshots/results-selecting.png" alt="DPcleaner - selecting images to trash" width="800" />
 </div>
-
-**5. Select and clean up.** Check the copies you don't want, across groups if you like — the toolbar shows how much space you'll free, live. **Move to Recycle Bin** sends them to the real Windows Recycle Bin, so it's fully undoable (Ctrl+Z or the Undo button).
 
 ## Features
 

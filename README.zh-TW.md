@@ -35,35 +35,35 @@
 
 ## 操作示範
 
+**1. 選資料夾、調相似度門檻。** 點 **+ Add folder** 開啟選擇資料夾的對話框，或直接把資料夾拖進視窗，可以加任意多個。每個資料夾列後面有 **Rename**（開啟該資料夾的批次重新命名對話框）跟 **Remove**（從清單移除）；**Clear all** 清空整份清單。門檻滑桿（50%–85%）控制比對的嚴格程度——調高只抓幾乎一模一樣的複本，調低連改動較大的變體也抓得到（但誤判也會變多）。準備好之後點 **Start scan**。
+
 <div align="center">
   <img src="screenshots/folders.png" alt="DPcleaner - 選擇要掃描的資料夾" width="800" />
 </div>
 
-**1. 選資料夾、調相似度門檻。** 點 **+ Add folder** 或直接把資料夾拖進視窗，可以加任意多個。門檻滑桿（50%–85%）控制比對的嚴格程度——調高只抓幾乎一模一樣的複本，調低連改動較大的變體也抓得到（但誤判也會變多）。
+**2. 掃描在本機執行。** 每張圖都會計算 SSCD embedding，即時顯示進度。**Stop** 可以隨時取消掃描。第一次掃描要下載約 94 MB 的模型（只需一次），之後同一個 session 只有新增/變更的圖片需要重新計算。
 
 <div align="center">
   <img src="screenshots/scanning.png" alt="DPcleaner - 掃描進度" width="800" />
 </div>
 
-**2. 掃描在本機執行。** 每張圖都會計算 SSCD embedding，即時顯示進度。第一次掃描要下載約 94 MB 的模型（只需一次），之後同一個 session 只有新增/變更的圖片需要重新計算。
+**3. 檢視重複群組。** 每張卡片是一組相符的圖片——縮圖、尺寸、檔案大小、來源資料夾、相似度範圍都看得到。用搜尋框、格式/排序下拉選單、**Min group** 來縮小範圍。每張卡片的 **Select group** 可以一次勾選整組圖片，**Compare** 打開並排比對畫面。右上角 **⚙ Settings** 是全域設定（語言、主題等）。
 
 <div align="center">
   <img src="screenshots/results.png" alt="DPcleaner - 掃描完成，找到重複群組" width="800" />
 </div>
 
-**3. 檢視重複群組。** 每張卡片是一組相符的圖片——縮圖、尺寸、檔案大小、來源資料夾、相似度範圍都看得到。可依副檔名、檔名、最小群組大小篩選，依相似度或建立時間排序。
+**4. 並排比對。** **Compare** 打開同步縮放/平移的比對視窗——滾輪縮放、拖曳平移，按 `0` 重設視角，群組內所有圖片會一起動，方便對齊同一個區域看差異。**Reset** 恢復預設視角；**Close**（或右鍵/Esc）回到結果畫面。
 
 <div align="center">
   <img src="screenshots/compare.png" alt="DPcleaner - 並排比對畫面" width="800" />
 </div>
 
-**4. 並排比對。** 點任一群組的 **Compare** 打開同步縮放/平移的比對視窗——滾輪縮放、拖曳平移，群組內所有圖片會一起動，方便對齊同一個區域看差異。
+**5. 選取並清理。** 勾選不要的版本，可以跨群組選取——**Select all** / **Clear selection** 一次全選或清空，工具列會即時顯示已選數量跟能釋放多少空間。**Move to Recycle Bin** 會把勾選的圖片丟進真正的 Windows 回收筒，所以完全可以復原——點 **Undo** 或按 Ctrl+Z。
 
 <div align="center">
   <img src="screenshots/results-selecting.png" alt="DPcleaner - 選取要丟到回收筒的圖片" width="800" />
 </div>
-
-**5. 選取並清理。** 勾選不要的版本，可以跨群組選取——工具列會即時顯示能釋放多少空間。**Move to Recycle Bin** 會丟進真正的 Windows 回收筒，所以完全可以復原（Ctrl+Z 或 Undo 按鈕）。
 
 ## 功能
 
