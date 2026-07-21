@@ -202,20 +202,6 @@ cd src-tauri && cargo clippy                  # clippy (Rust, needs the rustup c
 
 This is a solo learning project without much bandwidth for ongoing maintenance, but issues and small pull requests (typo fixes, clearer error messages, translation corrections) are welcome.
 
-## Star History
-
-<div align="center">
-
-<a href="https://www.star-history.com/#0000workjason/DPcleaner&Date">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=0000workjason/DPcleaner&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=0000workjason/DPcleaner&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=0000workjason/DPcleaner&type=Date" />
-  </picture>
-</a>
-
-</div>
-
 ## License
 
 [PolyForm Noncommercial License 1.0.0](LICENSE) — permits noncommercial use (learning, personal use, modification), prohibits commercial use.
