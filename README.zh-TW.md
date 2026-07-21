@@ -33,29 +33,37 @@
 
 > 目前還沒有自動化的 Release 流程，安裝檔要維護者手動照下面「打包成安裝檔」的步驟本地建置後上傳。
 
-## 截圖
+## 操作示範
+
+<div align="center">
+  <img src="screenshots/folders.png" alt="DPcleaner - 選擇要掃描的資料夾" width="800" />
+</div>
+
+**1. 選資料夾、調相似度門檻。** 點 **+ Add folder** 或直接把資料夾拖進視窗，可以加任意多個。門檻滑桿（50%–85%）控制比對的嚴格程度——調高只抓幾乎一模一樣的複本，調低連改動較大的變體也抓得到（但誤判也會變多）。
+
+<div align="center">
+  <img src="screenshots/scanning.png" alt="DPcleaner - 掃描進度" width="800" />
+</div>
+
+**2. 掃描在本機執行。** 每張圖都會計算 SSCD embedding，即時顯示進度。第一次掃描要下載約 94 MB 的模型（只需一次），之後同一個 session 只有新增/變更的圖片需要重新計算。
 
 <div align="center">
   <img src="screenshots/results.png" alt="DPcleaner - 掃描完成，找到重複群組" width="800" />
 </div>
 
-<details>
-<summary>更多畫面（選資料夾、掃描進度、並排比對、批次選取）</summary>
-<br/>
+**3. 檢視重複群組。** 每張卡片是一組相符的圖片——縮圖、尺寸、檔案大小、來源資料夾、相似度範圍都看得到。可依副檔名、檔名、最小群組大小篩選，依相似度或建立時間排序。
+
 <div align="center">
-  <img src="screenshots/folders.png" alt="DPcleaner - 選擇要掃描的資料夾" width="800" />
-  <p><sub>選資料夾、調相似度門檻、開始掃描。</sub></p>
-  <br/>
-  <img src="screenshots/scanning.png" alt="DPcleaner - 掃描進度" width="800" />
-  <p><sub>即時顯示 embedding 計算進度。</sub></p>
-  <br/>
-  <img src="screenshots/results-selecting.png" alt="DPcleaner - 選取要丟到回收筒的圖片" width="800" />
-  <p><sub>跨群組選取、丟到系統回收筒，可復原。</sub></p>
-  <br/>
   <img src="screenshots/compare.png" alt="DPcleaner - 並排比對畫面" width="800" />
-  <p><sub>同步縮放、平移一個群組裡的所有圖片。</sub></p>
 </div>
-</details>
+
+**4. 並排比對。** 點任一群組的 **Compare** 打開同步縮放/平移的比對視窗——滾輪縮放、拖曳平移，群組內所有圖片會一起動，方便對齊同一個區域看差異。
+
+<div align="center">
+  <img src="screenshots/results-selecting.png" alt="DPcleaner - 選取要丟到回收筒的圖片" width="800" />
+</div>
+
+**5. 選取並清理。** 勾選不要的版本，可以跨群組選取——工具列會即時顯示能釋放多少空間。**Move to Recycle Bin** 會丟進真正的 Windows 回收筒，所以完全可以復原（Ctrl+Z 或 Undo 按鈕）。
 
 ## 功能
 

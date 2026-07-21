@@ -33,29 +33,37 @@ Grab an installer (`.msi` or `-setup.exe`) from [Releases](../../releases), doub
 
 > There's no automated release pipeline yet; installers are built locally by the maintainer (see [Building an installer](#building-an-installer)) and uploaded manually.
 
-## Screenshots
+## How it works
+
+<div align="center">
+  <img src="screenshots/folders.png" alt="DPcleaner - choose folders to scan" width="800" />
+</div>
+
+**1. Pick folders, set a threshold.** Click **+ Add folder** or just drag folders onto the window — add as many as you like. The threshold slider (50–85%) controls how strict the match has to be: higher catches only near-identical copies, lower also catches more heavily edited variants (at the cost of more false positives).
+
+<div align="center">
+  <img src="screenshots/scanning.png" alt="DPcleaner - scan progress" width="800" />
+</div>
+
+**2. Scan runs locally.** SSCD embeddings are computed for every image, with live progress. The first scan downloads the ~94 MB model once; after that, only new or changed images need re-embedding.
 
 <div align="center">
   <img src="screenshots/results.png" alt="DPcleaner - duplicate groups found after a scan" width="800" />
 </div>
 
-<details>
-<summary>More screens (Folders, Scanning, Compare, batch selection)</summary>
-<br/>
+**3. Review the duplicate groups.** Each card is a group of matching images — thumbnails, dimensions, file size, folder, and similarity range. Filter by extension, filename, or minimum group size, and sort by similarity or creation time.
+
 <div align="center">
-  <img src="screenshots/folders.png" alt="DPcleaner - choose folders to scan" width="800" />
-  <p><sub>Pick folders, set the similarity threshold, and start scanning.</sub></p>
-  <br/>
-  <img src="screenshots/scanning.png" alt="DPcleaner - scan progress" width="800" />
-  <p><sub>Live progress while embeddings are computed.</sub></p>
-  <br/>
-  <img src="screenshots/results-selecting.png" alt="DPcleaner - selecting images to trash" width="800" />
-  <p><sub>Select across groups and send them to the Recycle Bin, with undo.</sub></p>
-  <br/>
   <img src="screenshots/compare.png" alt="DPcleaner - side-by-side compare view" width="800" />
-  <p><sub>Zoom and pan a group's images together, synced.</sub></p>
 </div>
-</details>
+
+**4. Compare side-by-side.** Click **Compare** on any group to open a synced zoom/pan viewer — scroll to zoom, drag to pan, and every image in the group moves together so you can line up the same region across versions.
+
+<div align="center">
+  <img src="screenshots/results-selecting.png" alt="DPcleaner - selecting images to trash" width="800" />
+</div>
+
+**5. Select and clean up.** Check the copies you don't want, across groups if you like — the toolbar shows how much space you'll free, live. **Move to Recycle Bin** sends them to the real Windows Recycle Bin, so it's fully undoable (Ctrl+Z or the Undo button).
 
 ## Features
 
