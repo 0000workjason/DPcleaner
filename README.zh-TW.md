@@ -173,6 +173,39 @@ npm run tauri build
 
 打包完拿 `src-tauri/target/release/desktop.exe` 直接跑（跟真的裝完一模一樣的目錄結構）可以快速驗證，不用每次都跑一遍安裝程式。
 
+### 可攜版（portable）
+
+免安裝版本，所有東西都留在自己的資料夾裡 —— 適合放隨身碟，或在不想安裝任何
+東西的電腦上使用。
+
+切換方式是一個標記檔：執行檔旁邊有 `portable.txt` 時，設定檔、SSCD 模型和
+WebView2 的快取都會放在同層的 `data` 資料夾，而不是你的使用者資料夾。把標記檔
+刪掉，同一份執行檔就會恢復成一般模式。發布的 zip 裡已經含有這個標記檔，使用者
+解壓縮後直接雙擊即可。
+
+```
+DPcleaner-portable\
+├── desktop.exe
+├── dpcleaner-server.exe
+├── portable.txt          標記檔 —— 啟用可攜模式
+├── webview2\             自帶的固定版本 WebView2 runtime
+└── data\                 設定、模型快取、WebView2 資料
+```
+
+需要先取得 **Fixed Version** 的 x64 WebView2 runtime，從
+[Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/) 下載後解
+壓縮。把它一起包進去，才能在沒有安裝 WebView2 的電腦上執行。
+
+```bash
+# 先完成上面的 npm run tauri build
+powershell -File scripts/make-portable.ps1 -WebView2Runtime C:\你的路徑\webview2-fixed
+```
+
+腳本會複製執行檔、寫入標記檔、包進 runtime，並把 SSCD 模型放到
+`data\.cache\`（本機已下載過就直接沿用，否則自動下載），這樣第一次掃描不需要
+網路。模型會做 SHA-256 驗證，不符就拒絕打包。產出在 `dist-portable\`，壓縮後
+大約 350～450 MB。
+
 ### 測試
 
 ```bash

@@ -25,15 +25,15 @@ from PIL import Image, ImageOps, ImageFile
 
 import torch
 
+from .paths import data_path
+
 logger = logging.getLogger(__name__)
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 SSCD_MODEL = "sscd_disc_mixup"
 SSCD_URL = "https://dl.fbaipublicfiles.com/sscd-copy-detection/sscd_disc_mixup.torchscript.pt"
-SSCD_PATH = os.path.join(
-    os.path.expanduser("~"), ".cache", "sscd", "sscd_disc_mixup.torchscript.pt"
-)
+SSCD_PATH = data_path(".cache", "sscd", "sscd_disc_mixup.torchscript.pt")
 # SHA-256 of the known-good TorchScript build. The model is executable code, so
 # we refuse to load any file whose hash doesn't match (guards against a tampered
 # CDN copy or a corrupt/partial download). Set to "" to skip the check.
@@ -107,7 +107,14 @@ class SSCDEmbedder:
         self.dim = 512
 
     @torch.inference_mode()
-    def embed_paths(self, scanned, progress_cb=None) -> dict:
+    def embed_paths(self, scanned, progress_cb=None, sink=None) -> dict:
+        """Embed every file in ``scanned``.
+
+        ``sink(path, w, h, emb, emb_flip)``, if given, is called for each image
+        as soon as its batch completes. That lets the caller persist results
+        incrementally: ``progress_cb`` may raise to cancel, and without a sink
+        everything computed so far would be discarded with the return value.
+        """
         results: dict[str, list] = {}
         dims: dict[str, tuple[int, int]] = {}
         tensors: list[torch.Tensor] = []
@@ -128,6 +135,15 @@ class SSCDEmbedder:
             for vec, (path, is_flip) in zip(feats, owners):
                 slot = results.setdefault(path, [None, None])
                 slot[1 if is_flip else 0] = vec.astype(np.float32)
+            if sink:
+                # Both orientations of an image are appended together, so a
+                # flush always completes whole pairs. dict.fromkeys dedupes
+                # the two owner entries per path while keeping order.
+                for path in dict.fromkeys(p for p, _ in owners):
+                    emb, emb_flip = results.get(path, (None, None))
+                    if emb is not None and emb_flip is not None:
+                        w, h = dims.get(path, (0, 0))
+                        sink(path, w, h, emb, emb_flip)
             tensors.clear()
             owners.clear()
 

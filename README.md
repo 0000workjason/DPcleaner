@@ -173,6 +173,41 @@ npm run tauri build
 
 After building, you can run `src-tauri/target/release/desktop.exe` directly (same directory layout as a real install) to quickly verify things work, without running the installer every time.
 
+### Portable build
+
+A no-install version that keeps everything inside its own folder — for running
+off a USB stick, or on a machine you'd rather not install anything on.
+
+The switch is a marker file: with `portable.txt` next to the executable, the
+settings file, the SSCD model and the WebView2 profile all live in `.\data`
+instead of your home directory. Delete the marker and the same binaries behave
+like a normal install. The zip ships with the marker already in place, so users
+just extract and double-click.
+
+```
+DPcleaner-portable\
+├── desktop.exe
+├── dpcleaner-server.exe
+├── portable.txt          marker — switches on portable mode
+├── webview2\             bundled fixed-version WebView2 runtime
+└── data\                 settings, model cache, WebView2 profile
+```
+
+You need the **Fixed Version** x64 WebView2 runtime, downloaded and extracted
+from [Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/) —
+bundling it is what lets the app run on machines with no WebView2 installed.
+
+```bash
+# after `npm run tauri build` (see above)
+powershell -File scripts/make-portable.ps1 -WebView2Runtime C:\path\to\webview2-fixed
+```
+
+The script copies the binaries, writes the marker, bundles the runtime, and
+places the SSCD model under `data\.cache\` (reusing your local copy if you
+have one, otherwise downloading it) so the first scan works with no network.
+It verifies the model's SHA-256 and refuses to package a mismatch. Output lands
+in `dist-portable\`. Expect roughly 350–450 MB zipped.
+
 ### Testing
 
 ```bash

@@ -13,9 +13,11 @@ import sqlite3
 
 import numpy as np
 
+from .paths import data_path
+
 # Default on-disk cache path. The desktop backend uses an in-memory repo for
 # privacy and purges this file on first scan; kept here as the canonical location.
-DEFAULT_DB = os.path.join(os.path.expanduser("~"), ".dpcleaner_cache.sqlite")
+DEFAULT_DB = data_path(".dpcleaner_cache.sqlite")
 
 
 def purge_disk_cache(db_path: str = DEFAULT_DB) -> None:

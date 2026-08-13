@@ -23,10 +23,31 @@ from dpcleaner.app import app, configure_token
 
 def _bind_loopback() -> socket.socket:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    # Deliberately NOT SO_REUSEADDR: on Windows that flag means "bind even if
+    # another socket already holds this port", so it would let any local
+    # process hijack ours -- and the ?token= the frontend puts in image and
+    # WebSocket URLs. SO_EXCLUSIVEADDRUSE is the documented opposite. There is
+    # nothing to reuse anyway; the OS picks a free ephemeral port.
+    if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
     s.bind(("127.0.0.1", int(os.environ.get("DPC_PORT", "0"))))
     s.listen()
     return s
+
+
+def resolve_token() -> str | None:
+    """The auth token for this run: honour one injected by the parent, else mint.
+
+    ``not token`` rather than ``token is None``: an empty DPC_TOKEN would
+    otherwise skip minting and leave ``_TOKEN = ""``, which the guard treats as
+    falsy -- every endpoint open, including POST /trash, while the handshake
+    still advertises a token= field. Returns None only in dev mode, where the
+    guard is deliberately a no-op.
+    """
+    token = os.environ.get("DPC_TOKEN")
+    if not token and os.environ.get("DPC_DEV") != "1":
+        token = secrets.token_urlsafe(16)
+    return token
 
 
 def main() -> None:
@@ -39,9 +60,7 @@ def main() -> None:
     sock = _bind_loopback()
     port = sock.getsockname()[1]
     # Token: honour one injected by the parent, else mint our own.
-    token = os.environ.get("DPC_TOKEN")
-    if token is None and os.environ.get("DPC_DEV") != "1":
-        token = secrets.token_urlsafe(16)
+    token = resolve_token()
     configure_token(token)
 
     print(f"DPC_READY port={port} token={token or ''}", flush=True)

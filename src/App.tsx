@@ -23,8 +23,9 @@ export default function App() {
     init();
   }, [init]);
 
-  // apply theme
+  // apply theme (until settings load, keep what main.tsx read from localStorage)
   useEffect(() => {
+    if (typeof theme !== "string") return;
     document.documentElement.dataset.theme =
       theme === "light" ? "light" : "dark";
   }, [theme]);
@@ -33,13 +34,29 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (
-        (e.ctrlKey || e.metaKey) &&
-        e.key.toLowerCase() === "z" &&
-        screen === "results"
-      ) {
-        e.preventDefault();
-        undo();
-      }
+        !(e.ctrlKey || e.metaKey) ||
+        e.key.toLowerCase() !== "z" ||
+        screen !== "results"
+      )
+        return;
+      // Never steal Ctrl+Z from a text field: typing in the search box and
+      // undoing a typo would otherwise pull the last trashed batch back out of
+      // the Recycle Bin instead of undoing the text.
+      const el = e.target as HTMLElement | null;
+      if (
+        el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.tagName === "SELECT" ||
+          el.isContentEditable)
+      )
+        return;
+      // Nor while a modal owns the screen, or an action is already in flight.
+      const s = useStore.getState();
+      if (s.busy || s.compare || s.settingsOpen || s.renameTarget) return;
+
+      e.preventDefault();
+      undo();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

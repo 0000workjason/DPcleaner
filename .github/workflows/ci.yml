@@ -44,6 +44,13 @@ jobs:
         with:
           components: clippy
       - name: Placeholder sidecar binary (externalBin requires the file to exist)
-        run: New-Item -ItemType File -Path binaries/dpcleaner-server-x86_64-pc-windows-msvc.exe -Force
+        # NOT `New-Item -Force`: that truncates an existing file. Harmless in
+        # CI (fresh checkout), but anyone running this line locally would zero
+        # their real 175 MB sidecar, and `tauri build` would then happily ship
+        # an installer containing a 0-byte backend without any stage failing.
+        run: |
+          $p = 'binaries/dpcleaner-server-x86_64-pc-windows-msvc.exe'
+          New-Item -ItemType Directory -Path binaries -Force | Out-Null
+          if (-not (Test-Path $p)) { New-Item -ItemType File -Path $p | Out-Null }
       - run: cargo check
       - run: cargo clippy -- -D warnings

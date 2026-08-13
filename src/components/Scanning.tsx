@@ -8,11 +8,20 @@ export function Scanning() {
   const progress = useStore((s) => s.progress);
   const setProgress = useStore((s) => s.setProgress);
   const cancelScan = useStore((s) => s.cancelScan);
+  const progressLost = useStore((s) => s.progressLost);
 
   useEffect(() => {
-    const conn = openProgress(setProgress);
+    const conn = openProgress(setProgress, progressLost);
     return () => conn.close();
-  }, [setProgress]);
+  }, [setProgress, progressLost]);
+
+  // Escape hatch: Stop waits for the backend to confirm the cancellation, which
+  // is the right behaviour when it's healthy. Back leaves regardless, so a dead
+  // socket or an unresponsive engine can't strand the user on this screen.
+  const leave = () => {
+    cancelScan();
+    useStore.setState({ screen: "folders" });
+  };
 
   const pct = progress.total
     ? Math.round((progress.done / progress.total) * 100)
@@ -23,7 +32,11 @@ export function Scanning() {
   if (progress.phase === "scanning") label = t("scan.scanning");
   else if (progress.phase === "embedding")
     label = `${t("scan.embedding")} ${progress.done}/${progress.total}`;
-  else if (progress.phase === "grouping") label = t("scan.grouping");
+  // "done" still shows Comparing: the backend is finished, but we stay on this
+  // screen until GET /groups returns, and falling through to "Preparing…" made
+  // that wait look like the scan had gone backwards.
+  else if (progress.phase === "grouping" || progress.phase === "done")
+    label = t("scan.grouping");
 
   return (
     <div className="screen scanning">
@@ -32,9 +45,14 @@ export function Scanning() {
       <div className="bar">
         <div className="bar-fill" style={{ width: `${pct}%` }} />
       </div>
-      <button className="danger" onClick={cancelScan}>
-        {t("scan.stop")}
-      </button>
+      <div className="scan-actions">
+        <button className="danger" onClick={cancelScan}>
+          {t("scan.stop")}
+        </button>
+        <button className="ghost" onClick={leave}>
+          ← {t("scan.back")}
+        </button>
+      </div>
     </div>
   );
 }

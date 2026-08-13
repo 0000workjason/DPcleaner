@@ -38,3 +38,4 @@ logs/
 
 # ── Claude Code 執行期暫存 ─────────────────────
 .claude/
+dist-portable/

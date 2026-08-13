@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useStore, type SortBy } from "../store";
 import { useT } from "../i18n";
 
@@ -21,6 +21,19 @@ export function Toolbar() {
     data?.groups.forEach((g) => g.members.forEach((m) => set.add(m.ext)));
     return [...set].sort();
   }, [data]);
+
+  // Held as text, committed on blur/Enter. Clamping every keystroke meant the
+  // field could never be cleared and typing "12" produced 1 -> 2 -> "22",
+  // which silently filtered nearly everything out of the gallery.
+  const [minGroupText, setMinGroupText] = useState(String(view.minGroup));
+  useEffect(() => setMinGroupText(String(view.minGroup)), [view.minGroup]);
+
+  const commitMinGroup = () => {
+    const n = parseInt(minGroupText, 10);
+    const clamped = Number.isNaN(n) ? 2 : Math.min(50, Math.max(2, n));
+    setMinGroupText(String(clamped));
+    if (clamped !== view.minGroup) setView({ minGroup: clamped });
+  };
 
   return (
     <div className="toolbar">
@@ -74,10 +87,12 @@ export function Toolbar() {
           type="number"
           min={2}
           max={50}
-          value={view.minGroup}
-          onChange={(e) =>
-            setView({ minGroup: Math.max(2, parseInt(e.target.value) || 2) })
-          }
+          value={minGroupText}
+          onChange={(e) => setMinGroupText(e.target.value)}
+          onBlur={commitMinGroup}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commitMinGroup();
+          }}
         />
       </label>
 
