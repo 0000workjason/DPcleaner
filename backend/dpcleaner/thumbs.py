@@ -28,26 +28,40 @@ def _render(path: str, maxdim: int, quality: int) -> bytes:
     return buf.getvalue()
 
 
+# Two caches, not one. Gallery tiles are ~15 KB each, but compare-viewer
+# previews are 300-800 KB, and `maxdim` is client-controlled and part of the
+# key. Sharing a single 3000-entry cache meant browsing a large scan grew
+# resident memory towards 1-2 GB and never gave it back.
 @lru_cache(maxsize=3000)
-def _cached(path: str, mtime: float, maxdim: int, quality: int) -> bytes:
+def _cached_thumb(path: str, mtime: float, maxdim: int, quality: int) -> bytes:
     return _render(path, maxdim, quality)
 
 
-def get_thumb(path: str, maxdim: int = 320, quality: int = 80) -> bytes | None:
+@lru_cache(maxsize=48)
+def _cached_preview(path: str, mtime: float, maxdim: int, quality: int) -> bytes:
+    return _render(path, maxdim, quality)
+
+
+def _get(cache, path: str, maxdim: int, quality: int) -> bytes | None:
     try:
         mtime = os.path.getmtime(path)
     except OSError:
         return None
     try:
-        return _cached(path, mtime, maxdim, quality)
+        return cache(path, mtime, maxdim, quality)
     except Exception:
         return None
 
 
+def get_thumb(path: str, maxdim: int = 320, quality: int = 80) -> bytes | None:
+    return _get(_cached_thumb, path, maxdim, quality)
+
+
 def get_preview(path: str, maxdim: int = 2048, quality: int = 88) -> bytes | None:
     """Larger image for the compare/zoom viewer (still capped, not the raw file)."""
-    return get_thumb(path, maxdim=maxdim, quality=quality)
+    return _get(_cached_preview, path, maxdim, quality)
 
 
 def clear_cache() -> None:
-    _cached.cache_clear()
+    _cached_thumb.cache_clear()
+    _cached_preview.cache_clear()

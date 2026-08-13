@@ -62,11 +62,11 @@ describe("selection", () => {
     expect(useStore.getState().selection.has("a.png")).toBe(false);
   });
 
-  it("selectAll selects every member across all groups", () => {
+  it("selectAll selects every member of the visible groups", () => {
     useStore.setState({
       data: groupsResponse([
         group("g1", ["a.png", "b.png"]),
-        group("g2", ["c.png"]),
+        group("g2", ["c.png", "d.png"]),
       ]),
     });
     useStore.getState().selectAll();
@@ -74,6 +74,41 @@ describe("selection", () => {
       "a.png",
       "b.png",
       "c.png",
+      "d.png",
+    ]);
+  });
+
+  // Regression: selectAll used to walk the raw response while the gallery
+  // rendered the filtered list, so Select all + Trash deleted files the user
+  // could not see.
+  it("selectAll skips groups hidden by the search filter", () => {
+    useStore.setState({
+      data: groupsResponse([
+        group("g1", ["holiday-1.png", "holiday-2.png"]),
+        group("g2", ["work-1.png", "work-2.png"]),
+      ]),
+      view: { ...initialState.view, search: "holiday" },
+    });
+    useStore.getState().selectAll();
+    expect([...useStore.getState().selection].sort()).toEqual([
+      "holiday-1.png",
+      "holiday-2.png",
+    ]);
+  });
+
+  it("selectAll skips groups hidden by the minGroup filter", () => {
+    useStore.setState({
+      data: groupsResponse([
+        group("g1", ["a.png", "b.png"]),
+        group("g2", ["c.png", "d.png", "e.png"]),
+      ]),
+      view: { ...initialState.view, minGroup: 3 },
+    });
+    useStore.getState().selectAll();
+    expect([...useStore.getState().selection].sort()).toEqual([
+      "c.png",
+      "d.png",
+      "e.png",
     ]);
   });
 
@@ -127,6 +162,17 @@ describe("startScan", () => {
     expect(useStore.getState().screen).toBe("folders");
     expect(useStore.getState().toast).toContain("boom");
   });
+
+  // Regression: a 409 used to bounce the user back to Folders while the
+  // already-running scan kept going with nobody listening for its results.
+  it("stays on the scanning screen when a scan is already running", async () => {
+    vi.mocked(api.scan).mockRejectedValue(
+      new Error("/scan → 409 scan already running"),
+    );
+    useStore.setState({ folders: ["C:/pics"] });
+    await useStore.getState().startScan();
+    expect(useStore.getState().screen).toBe("scanning");
+  });
 });
 
 describe("setProgress", () => {
@@ -162,6 +208,33 @@ describe("setProgress", () => {
     });
     expect(useStore.getState().screen).toBe("folders");
   });
+
+  // Regression: the backend closes the socket after the terminal frame, so an
+  // unhandled /groups rejection stranded the user at 100% forever.
+  it("returns to folders when loading results fails after a scan", async () => {
+    vi.mocked(api.groups).mockRejectedValue(new Error("boom"));
+    useStore.setState({ screen: "scanning" });
+    useStore
+      .getState()
+      .setProgress({ phase: "done", done: 1, total: 1, status: "", error: "" });
+    await vi.waitFor(() => expect(useStore.getState().screen).toBe("folders"));
+    expect(useStore.getState().toast).toContain("boom");
+  });
+});
+
+describe("progressLost", () => {
+  it("leaves the scanning screen when the progress socket dies", () => {
+    useStore.setState({ screen: "scanning" });
+    useStore.getState().progressLost();
+    expect(useStore.getState().screen).toBe("folders");
+    expect(useStore.getState().toast).toBeTruthy();
+  });
+
+  it("is a no-op when not scanning", () => {
+    useStore.setState({ screen: "results" });
+    useStore.getState().progressLost();
+    expect(useStore.getState().screen).toBe("results");
+  });
 });
 
 describe("refreshGroups", () => {
@@ -172,6 +245,26 @@ describe("refreshGroups", () => {
     useStore.setState({ selection: new Set(["a.png", "gone.png"]) });
     await useStore.getState().refreshGroups();
     expect([...useStore.getState().selection]).toEqual(["a.png"]);
+  });
+
+  // Regression: dragging the threshold down then up fired a slow request then
+  // a fast one; the slow reply landed last and overwrote the fresh results.
+  it("ignores a slow earlier response that lands after a newer one", async () => {
+    let resolveSlow!: (v: GroupsResponse) => void;
+    const slow = new Promise<GroupsResponse>((r) => {
+      resolveSlow = r;
+    });
+    vi.mocked(api.groups)
+      .mockReturnValueOnce(slow)
+      .mockResolvedValueOnce(groupsResponse([group("fresh", ["new.png"])]));
+
+    const stale = useStore.getState().refreshGroups();
+    await useStore.getState().refreshGroups();
+    expect(useStore.getState().data?.groups[0].id).toBe("fresh");
+
+    resolveSlow(groupsResponse([group("stale", ["old.png"])]));
+    await stale;
+    expect(useStore.getState().data?.groups[0].id).toBe("fresh");
   });
 });
 
@@ -199,6 +292,22 @@ describe("trash / undo", () => {
     await useStore.getState().trashPaths(["a.png"]);
     expect(useStore.getState().undoCount).toBe(0);
     expect(useStore.getState().toast).toContain("1");
+  });
+
+  // Regression: trashPaths had no catch, so a rejected request un-greyed the
+  // button with no message at all and the user just clicked it again.
+  it("trashPaths surfaces a toast when the request itself fails", async () => {
+    vi.mocked(api.trash).mockRejectedValue(new Error("connection reset"));
+    await useStore.getState().trashPaths(["a.png"]);
+    expect(useStore.getState().toast).toContain("connection reset");
+    expect(useStore.getState().busy).toBe(false);
+  });
+
+  it("undo surfaces a toast when the request fails", async () => {
+    vi.mocked(api.undo).mockRejectedValue(new Error("bin unavailable"));
+    await useStore.getState().undo();
+    expect(useStore.getState().toast).toContain("bin unavailable");
+    expect(useStore.getState().busy).toBe(false);
   });
 
   it("trashSelected trashes the current selection and clears it", async () => {
@@ -231,6 +340,20 @@ describe("view / ui state setters", () => {
     useStore.getState().setView({ search: "cat" });
     expect(useStore.getState().view.search).toBe("cat");
     expect(useStore.getState().view.sortBy).toBe(initialState.view.sortBy);
+  });
+
+  // Regression: a selection made under a wider filter used to survive into a
+  // narrower one and get trashed while invisible.
+  it("setView drops selected paths the new filter hides", () => {
+    useStore.setState({
+      data: groupsResponse([
+        group("g1", ["holiday-1.png", "holiday-2.png"]),
+        group("g2", ["work-1.png", "work-2.png"]),
+      ]),
+      selection: new Set(["holiday-1.png", "work-1.png"]),
+    });
+    useStore.getState().setView({ search: "work" });
+    expect([...useStore.getState().selection]).toEqual(["work-1.png"]);
   });
 
   it("openCompare / closeCompare", () => {

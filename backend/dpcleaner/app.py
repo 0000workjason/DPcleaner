@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import secrets
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,7 +20,7 @@ from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel
 
 from . import __version__
-from .config_store import load_config, save_config
+from .config_store import load_config, update_config
 from .container import dedupe, rename
 from .serializers import groups_to_dict, progress_to_dict
 from . import thumbs
@@ -28,17 +29,19 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="dpcleaner backend", version=__version__)
 
-# Loopback-only service; allow any local origin (Vite dev server, tauri://...).
-# Access is gated by the token guard below, not by origin.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 _TOKEN: str | None = None
 _OPEN_PATHS = {"/health"}
+
+# The webview's own origins. Loopback-only binding already keeps remote hosts
+# out; this stops an arbitrary page in the user's browser from reading
+# responses if it ever gets hold of the token.
+_ALLOWED_ORIGINS = [
+    "http://tauri.localhost",  # packaged app (Windows custom protocol)
+    "https://tauri.localhost",
+    "tauri://localhost",
+    "http://localhost:1420",  # vite dev server
+    "http://127.0.0.1:1420",
+]
 
 
 def configure_token(token: str | None) -> None:
@@ -46,14 +49,26 @@ def configure_token(token: str | None) -> None:
     _TOKEN = token
 
 
+# NOTE: middleware order. Starlette runs the *last* registered middleware
+# outermost, so CORSMiddleware is added after this guard -- otherwise the guard
+# short-circuits first and a 401 carries no CORS headers, which the webview can
+# only report as an opaque network error instead of "bad token".
 @app.middleware("http")
 async def _token_guard(request: Request, call_next):
     if _TOKEN and request.method != "OPTIONS" and request.url.path not in _OPEN_PATHS:
         # Header for fetch() calls; query param for <img src> (can't set headers).
         supplied = request.headers.get("x-dpc-token") or request.query_params.get("token")
-        if supplied != _TOKEN:
+        if not supplied or not secrets.compare_digest(supplied, _TOKEN):
             return JSONResponse({"detail": "bad token"}, status_code=401)
     return await call_next(request)
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_ALLOWED_ORIGINS,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # ---- request models ----
@@ -127,10 +142,16 @@ async def ws_progress(ws: WebSocket):
             # is detected promptly -- send() alone doesn't reliably raise on
             # a connection the peer already dropped, which otherwise leaves
             # this loop spinning forever trying to send into the void.
+            # NOTE: ws.receive() does NOT raise on disconnect -- it returns the
+            # disconnect message and only the typed receive_*() helpers raise.
+            # Checking the message type keeps a normal client close (every time
+            # the Scanning screen unmounts) out of the error log.
             try:
-                await asyncio.wait_for(ws.receive(), timeout=0.12)
+                msg = await asyncio.wait_for(ws.receive(), timeout=0.12)
             except asyncio.TimeoutError:
-                pass
+                continue
+            if msg.get("type") == "websocket.disconnect":
+                break
     except WebSocketDisconnect:
         pass
     except Exception:
@@ -138,13 +159,23 @@ async def ws_progress(ws: WebSocket):
 
 
 # ---- groups / stats ----
+def _clamp_threshold(t: float) -> float:
+    """Cosine similarity is in [0, 1]. The lower triangle of the score matrix is
+    masked with -1.0, so a threshold at or below that matches every one of the
+    n^2 pairs and the grouping loop syncs the GPU once per pair -- hours of
+    hang and an OOM. Clamp rather than trust the query string."""
+    return max(0.0, min(1.0, t))
+
+
 @app.get("/groups")
 def groups(threshold: float = 0.60):
+    threshold = _clamp_threshold(threshold)
     return groups_to_dict(*dedupe.grouped(threshold), threshold=threshold)
 
 
 @app.get("/stats")
 def stats(threshold: float = 0.60):
+    threshold = _clamp_threshold(threshold)
     return groups_to_dict(*dedupe.grouped(threshold), threshold=threshold)["stats"]
 
 
@@ -187,12 +218,18 @@ def _rename_args(req: RenameReq) -> dict:
 
 @app.post("/rename/preview")
 def rename_preview(req: RenameReq):
-    return rename.preview(req.folder, **_rename_args(req))
+    try:
+        return rename.preview(req.folder, **_rename_args(req))
+    except ValueError as e:  # rejected prefix / target outside the folder
+        raise HTTPException(400, str(e))
 
 
 @app.post("/rename/apply")
 def rename_apply(req: RenameReq):
-    return rename.apply(req.folder, **_rename_args(req))
+    try:
+        return rename.apply(req.folder, **_rename_args(req))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
 
 @app.post("/rename/undo")
@@ -208,7 +245,8 @@ def get_settings():
 
 @app.post("/settings")
 def post_settings(req: SettingsReq):
-    cfg = load_config()
-    cfg.update(req.values)
-    save_config(cfg)
+    try:
+        cfg = update_config(req.values)
+    except Exception as e:  # noqa: BLE001 - never report an unsaved setting as saved
+        raise HTTPException(500, f"could not save settings: {e}")
     return {"ok": True, "config": cfg}

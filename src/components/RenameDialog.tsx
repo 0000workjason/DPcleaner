@@ -7,6 +7,11 @@ import type { RenameArgs, RenamePreview, RenameResult } from "../types";
 
 const PREVIEW_ROWS = 8;
 
+/** Mirrors the backend's check. The authoritative rejection happens there --
+ *  this is only so the user sees why Apply is disabled. A prefix containing a
+ *  path separator would move every image out of the folder. */
+const BAD_PREFIX = /[\\/:*?"<>|]/;
+
 /** Batch-rename the images in one folder to a numeric sequence (001, 002…).
  *  Lives on the pre-scan Folders screen; previews live and offers a one-click
  *  undo of the rename it just performed. */
@@ -39,6 +44,7 @@ export function RenameDialog() {
   // Live preview (debounced) while the form changes — but not after applying.
   useEffect(() => {
     if (!folder || result) return;
+    if (BAD_PREFIX.test(args.prefix ?? "")) return; // backend would 400 anyway
     let alive = true;
     const id = setTimeout(() => {
       api
@@ -87,11 +93,19 @@ export function RenameDialog() {
       const r = await api.renameUndo(result.batch_id);
       setToast(r.ok ? t("toast.renameUndone") : t("toast.renameUndoFail"));
       close();
+    } catch (e) {
+      // Without this a rejected undo left the dialog open with no explanation.
+      setToast(
+        t("toast.renameFail", {
+          err: e instanceof Error ? e.message : String(e),
+        }),
+      );
     } finally {
       setBusy(false);
     }
   };
 
+  const prefixInvalid = BAD_PREFIX.test(prefix);
   const count = preview?.count ?? 0;
   const rows = preview?.items.slice(0, PREVIEW_ROWS) ?? [];
   const extra = Math.max(0, count - rows.length);
@@ -191,6 +205,9 @@ export function RenameDialog() {
               </ul>
             )}
 
+            {prefixInvalid && (
+              <div className="rename-warn">{t("rename.prefixInvalid")}</div>
+            )}
             {preview && preview.conflicts.length > 0 && (
               <div className="rename-warn">
                 {t("rename.conflict", { n: preview.conflicts.length })}
@@ -205,7 +222,7 @@ export function RenameDialog() {
               <button
                 className="primary"
                 onClick={onApply}
-                disabled={busy || count === 0}
+                disabled={busy || count === 0 || prefixInvalid}
               >
                 {t("rename.apply")}
               </button>

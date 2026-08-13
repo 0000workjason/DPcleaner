@@ -15,23 +15,43 @@ export function Folders() {
   const startScan = useStore((s) => s.startScan);
   const openSettings = useStore((s) => s.openSettings);
   const openRename = useStore((s) => s.openRename);
+  const setToast = useStore((s) => s.setToast);
+  const starting = useStore((s) => s.starting);
 
   const pick = async () => {
-    const sel = await open({ directory: true, multiple: true });
-    if (Array.isArray(sel)) addFolders(sel);
-    else if (typeof sel === "string") addFolders([sel]);
+    try {
+      const sel = await open({ directory: true, multiple: true });
+      if (Array.isArray(sel)) addFolders(sel);
+      else if (typeof sel === "string") addFolders([sel]);
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : String(e));
+    }
   };
 
   // OS drag-and-drop of folders onto the window
   useEffect(() => {
+    // `cancelled` matters: if cleanup runs before the promise resolves, the
+    // listener would be registered afterwards with nothing left to remove it.
+    // React StrictMode does mount -> cleanup -> mount on every dev mount, so
+    // the first listener leaked permanently and kept firing on other screens.
+    let cancelled = false;
     let un: (() => void) | undefined;
     getCurrentWebview()
       .onDragDropEvent((e) => {
         if (e.payload.type === "drop" && e.payload.paths?.length)
           addFolders(e.payload.paths);
       })
-      .then((f) => (un = f));
-    return () => un?.();
+      .then((f) => {
+        if (cancelled) f();
+        else un = f;
+      })
+      .catch(() => {
+        /* drag-drop unavailable; picking folders still works */
+      });
+    return () => {
+      cancelled = true;
+      un?.();
+    };
   }, [addFolders]);
 
   return (
@@ -99,7 +119,7 @@ export function Folders() {
         <button
           className="primary big"
           onClick={startScan}
-          disabled={folders.length === 0}
+          disabled={folders.length === 0 || starting}
         >
           {t("folders.startScan")}
         </button>

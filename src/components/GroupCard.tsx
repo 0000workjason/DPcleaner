@@ -57,7 +57,11 @@ export function GroupCard({ group }: { group: Group }) {
             >
               <div className="tile-thumb">
                 {/* clicking the image selects it; use the Compare button for the zoom view */}
-                <Thumb path={m.path} size={360} />
+                <Thumb
+                  path={m.path}
+                  size={360}
+                  version={`${m.size}-${m.ctime}`}
+                />
                 <label
                   className="badge pick"
                   onClick={(e) => e.stopPropagation()}
