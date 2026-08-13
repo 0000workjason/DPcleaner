@@ -14,3 +14,11 @@ packages = ["dpcleaner"]
 [tool.ruff]
 target-version = "py310"
 line-length = 100
+
+[tool.ruff.lint]
+# Stated explicitly rather than inherited. ruff 0.16 expanded its default from
+# {E, F} to 37 rule families, so an unpinned `ruff>=0.9` in requirements.txt
+# turned CI red on files nobody had touched. These four are ruff's classic
+# default and what this codebase was written against; widening the set is a
+# deliberate decision, not something a linter release should make for us.
+select = ["E4", "E7", "E9", "F"]
