@@ -15,15 +15,14 @@ Implements the ``interfaces.embedder.Embedder`` port.
 
 from __future__ import annotations
 
+import hashlib
+import io
 import logging
 import os
-import io
-import hashlib
 
 import numpy as np
-from PIL import Image, ImageOps, ImageFile
-
 import torch
+from PIL import Image, ImageFile, ImageOps
 
 from .paths import data_path
 
