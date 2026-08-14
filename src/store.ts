@@ -98,6 +98,14 @@ const withToast = (s: State, text: string, extra: Partial<State> = {}) => ({
   toastSeq: s.toastSeq + 1,
 });
 
+/** State patch that opens the Scanning screen for a fresh run. */
+const enterScanning = (): Partial<State> => ({
+  screen: "scanning",
+  progress: { ...IDLE, phase: "scanning" },
+  data: null,
+  selection: new Set(),
+});
+
 /** Paths the user can actually see under the active toolbar filters. */
 function visiblePaths(
   data: GroupsResponse | null,
@@ -197,23 +205,26 @@ export const useStore = create<State>((set, get) => ({
       return;
     }
     if (starting) return; // double-click would race the backend's own guard
-    set({
-      starting: true,
-      screen: "scanning",
-      progress: { ...IDLE, phase: "scanning" },
-      data: null,
-      selection: new Set(),
-    });
+    set({ starting: true });
     try {
       await api.scan(folders, (get().settings.device as string) || undefined);
+      // Only now. The Scanning screen opens the progress socket on mount, and
+      // the backend answers a fresh connection with whatever progress it holds
+      // *at that moment*. Switching screens before this await meant the socket
+      // could beat POST /scan to the backend and be handed the previous scan's
+      // "done" frame -- which sent the UI straight to an empty Results screen
+      // (embedded was already cleared) while the real scan ran on unwatched.
+      // Awaiting first is what closes that window: start_scan() resets progress
+      // synchronously, before the response is sent.
+      set(enterScanning());
     } catch (e) {
       const msg = errMsg(e);
       if (msg.includes("409")) {
-        // A scan is already running. Its progress still arrives on the socket,
-        // so stay on this screen instead of stranding it with nobody listening.
-        set((s) =>
-          withToast(s, translate(get().lang, "toast.scanAlreadyRunning")),
-        );
+        // A scan is already running -- go watch it rather than strand it.
+        set((s) => ({
+          ...withToast(s, translate(get().lang, "toast.scanAlreadyRunning")),
+          ...enterScanning(),
+        }));
       } else {
         set((s) =>
           withToast(
