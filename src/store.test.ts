@@ -163,6 +163,30 @@ describe("startScan", () => {
     expect(useStore.getState().toast).toContain("boom");
   });
 
+  // Regression: the Scanning screen opens the progress socket on mount, and
+  // the backend answers a new connection with whatever progress it holds right
+  // then. Switching screens before POST /scan resolved let the socket be handed
+  // the *previous* scan's "done" frame, which sent the UI to an empty Results
+  // screen while the real scan ran on unwatched. Symptom: scan folder A, go
+  // Back, scan folder B -> "no duplicates found"; scan B again -> correct.
+  it("does not open the scanning screen until the backend accepts the scan", async () => {
+    let accept!: (v: { ok: boolean; folders: string[] }) => void;
+    vi.mocked(api.scan).mockReturnValueOnce(
+      new Promise((r) => {
+        accept = r;
+      }),
+    );
+    useStore.setState({ folders: ["C:/pics"], screen: "folders" });
+
+    const pending = useStore.getState().startScan();
+    expect(useStore.getState().screen).toBe("folders");
+
+    accept({ ok: true, folders: ["C:/pics"] });
+    await pending;
+    expect(useStore.getState().screen).toBe("scanning");
+    expect(useStore.getState().data).toBeNull();
+  });
+
   // Regression: a 409 used to bounce the user back to Folders while the
   // already-running scan kept going with nobody listening for its results.
   it("stays on the scanning screen when a scan is already running", async () => {
