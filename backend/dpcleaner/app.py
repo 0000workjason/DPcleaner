@@ -14,16 +14,15 @@ import logging
 import os
 import secrets
 
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response, JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 
-from . import __version__
+from . import __version__, thumbs
 from .config_store import load_config, update_config
 from .container import dedupe, rename
 from .serializers import groups_to_dict, progress_to_dict
-from . import thumbs
 
 logger = logging.getLogger(__name__)
 
@@ -133,10 +132,9 @@ async def ws_progress(ws: WebSocket):
         while True:
             p = progress_to_dict(dedupe.progress)
             await ws.send_json(p)
-            if p["phase"] in ("done", "cancelled", "error", "idle"):
+            if p["phase"] in ("done", "cancelled", "error"):
                 # one final frame already sent; stop pushing until next scan
-                if p["phase"] != "idle":
-                    break
+                break
             # Wait via receive() rather than plain sleep so an abrupt
             # disconnect (peer vanishes without a clean close, e.g. a crash)
             # is detected promptly -- send() alone doesn't reliably raise on
@@ -213,7 +211,7 @@ def undo():
 def _rename_args(req: RenameReq) -> dict:
     if not req.folder or not os.path.isdir(req.folder):
         raise HTTPException(400, "folder not found")
-    return dict(start=req.start, pad=req.pad, prefix=req.prefix, order=req.order)
+    return {"start": req.start, "pad": req.pad, "prefix": req.prefix, "order": req.order}
 
 
 @app.post("/rename/preview")

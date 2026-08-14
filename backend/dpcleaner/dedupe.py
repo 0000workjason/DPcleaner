@@ -16,14 +16,14 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 
-from .models import ImageInfo, DupGroup, EmbeddedSet, Progress
-from .grouping import find_duplicate_groups
 from .embedder import Embedder
 from .embedding_repo import EmbeddingRepository
+from .grouping import find_duplicate_groups
+from .models import DupGroup, EmbeddedSet, ImageInfo, Progress
 from .scanner import ImageScanner
 from .trash_gateway_port import TrashGateway
 
@@ -106,7 +106,7 @@ class DedupeService:
         except _Cancelled:
             self.progress.phase = "cancelled"
             self.progress.status = "Cancelled."
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             logger.exception("scan failed")
             self.progress.phase = "error"
             self.progress.error = str(e)

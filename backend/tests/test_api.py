@@ -10,9 +10,9 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from dpcleaner.models import ImageInfo, EmbeddedSet
 from dpcleaner.app import app, configure_token
 from dpcleaner.container import SESSION
+from dpcleaner.models import EmbeddedSet, ImageInfo
 
 
 def _unit(vec):

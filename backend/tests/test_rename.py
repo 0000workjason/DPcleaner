@@ -9,9 +9,9 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
-from dpcleaner.fs_renamer import plan_renames, apply_renames, undo_renames
 from dpcleaner.app import app, configure_token
 from dpcleaner.container import rename as RENAME
+from dpcleaner.fs_renamer import apply_renames, plan_renames, undo_renames
 
 
 def _touch(p, data=b"x"):
@@ -82,7 +82,7 @@ def test_apply_two_phase_no_clobber(tmp_path):
     # source, which the two-phase rename must handle without losing data.
     _touch(tmp_path / "2.jpg", b"AA")
     _touch(tmp_path / "3.jpg", b"BBB")
-    ok, failed = apply_renames(plan_renames(str(tmp_path), start=1))
+    _ok, failed = apply_renames(plan_renames(str(tmp_path), start=1))
     assert failed == []
     assert _names(tmp_path) == ["1.jpg", "2.jpg"]
     assert (tmp_path / "1.jpg").read_bytes() == b"AA"  # was 2.jpg
@@ -104,7 +104,7 @@ def test_apply_refuses_out_of_set_overwrite(tmp_path):
 def test_apply_noop_when_already_named(tmp_path):
     _touch(tmp_path / "1.jpg")
     mapping = plan_renames(str(tmp_path), start=1)  # -> ("1.jpg" -> "1.jpg")
-    ok, failed = apply_renames(mapping)
+    _ok, failed = apply_renames(mapping)
     assert failed == []
     assert _names(tmp_path) == ["1.jpg"]
 
@@ -116,7 +116,7 @@ def test_undo_restores_original_names(tmp_path):
     ok, _ = apply_renames(mapping)
     assert _names(tmp_path) == ["1.jpg", "2.png"]
     changed = [(o, n) for o, n in ok if os.path.normcase(o) != os.path.normcase(n)]
-    rok, rfailed = undo_renames(changed)
+    _rok, rfailed = undo_renames(changed)
     assert rfailed == []
     assert _names(tmp_path) == ["alpha.jpg", "beta.png"]
     assert (tmp_path / "alpha.jpg").read_bytes() == b"A"
@@ -199,7 +199,7 @@ def test_apply_endpoint_rejects_traversal_prefix(client, tmp_path):
 def test_harmless_prefix_still_works(tmp_path):
     _touch(tmp_path / "a.jpg")
     _touch(tmp_path / "b.jpg")
-    ok, failed = apply_renames(plan_renames(str(tmp_path), start=1, prefix="pic-"))
+    _ok, failed = apply_renames(plan_renames(str(tmp_path), start=1, prefix="pic-"))
     assert failed == []
     assert _names(tmp_path) == ["pic-1.jpg", "pic-2.jpg"]
 
@@ -286,7 +286,7 @@ def test_recover_folder_is_a_no_op_without_a_journal(tmp_path):
 
 def test_case_only_rename_is_actually_performed(tmp_path):
     _touch(tmp_path / "A.jpg", b"A")
-    ok, failed = apply_renames([(str(tmp_path / "A.jpg"), str(tmp_path / "a.jpg"))])
+    _ok, failed = apply_renames([(str(tmp_path / "A.jpg"), str(tmp_path / "a.jpg"))])
     assert failed == []
     assert os.listdir(tmp_path) == ["a.jpg"]
     assert (tmp_path / "a.jpg").read_bytes() == b"A"

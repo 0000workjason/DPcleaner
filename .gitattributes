@@ -1,0 +1,14 @@
+# Store and check out every text file with LF.
+#
+# Without this, core.autocrlf=true (the Windows default) hands the working tree
+# CRLF while git stores LF. Everything still builds, and CI is unaffected
+# because it runs on Linux -- but `npx prettier --check` locally reports every
+# file as misformatted, which makes the one check that matters untrustworthy.
+* text=auto eol=lf
+
+# Never touch these; line-ending conversion corrupts them.
+*.png binary
+*.ico binary
+*.icns binary
+*.exe binary
+*.pt binary

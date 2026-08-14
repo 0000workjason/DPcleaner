@@ -107,7 +107,7 @@ def recover_folder(folder: str) -> list[tuple[str, str]]:
             staged = json.load(f)
     except FileNotFoundError:
         return []
-    except Exception:  # noqa: BLE001 - a corrupt journal must not block renaming
+    except Exception:
         logger.exception("unreadable rename journal at %s", path)
         return []
 
@@ -233,7 +233,7 @@ def apply_renames(mapping) -> tuple[list[tuple[str, str]], list[tuple[str, str]]
     for tmp, new_abs, old_abs in staged:
         try:
             os.rename(old_abs, tmp)
-        except Exception as e:  # noqa: BLE001 - report, keep going
+        except OSError as e:  # report, keep going
             failed.append((old_abs, str(e)))
             continue
         moved.append((tmp, new_abs, old_abs))
@@ -243,11 +243,15 @@ def apply_renames(mapping) -> tuple[list[tuple[str, str]], list[tuple[str, str]]
         try:
             os.rename(tmp, final_abs)
             ok.append((old_abs, final_abs))
-        except Exception as e:  # noqa: BLE001
+        except OSError as e:
             try:  # best effort: restore the original name, don't leave .dpctmp
                 os.rename(tmp, old_abs)
-            except Exception:
-                pass
+            except OSError:
+                # Both moves failed, so the file is stranded under its temp
+                # name. The journal still holds the mapping, so the next
+                # plan_renames() on this folder recovers it -- but log it,
+                # because silence here looks like the file simply vanished.
+                logger.exception("could not restore %s to %s", tmp, old_abs)
             failed.append((old_abs, str(e)))
 
     _clear_journal(folder)

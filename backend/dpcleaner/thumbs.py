@@ -8,10 +8,13 @@ serving a stale tile.
 from __future__ import annotations
 
 import io
+import logging
 import os
 from functools import lru_cache
 
 from PIL import Image, ImageFile
+
+logger = logging.getLogger(__name__)
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -50,6 +53,10 @@ def _get(cache, path: str, maxdim: int, quality: int) -> bytes | None:
     try:
         return cache(path, mtime, maxdim, quality)
     except Exception:
+        # Broad on purpose: Pillow raises many types on a bad image. Unreadable
+        # or corrupt files are expected in a folder the user just pointed us
+        # at; None becomes a 404 and the UI shows a placeholder.
+        logger.debug("could not render %s", path, exc_info=True)
         return None
 
 

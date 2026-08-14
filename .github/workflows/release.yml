@@ -1,0 +1,85 @@
+name: Release
+
+# Push a version tag and this builds the portable zip and attaches it to the
+# release. Doing it by hand takes four steps across three toolchains and has
+# already gone wrong once (a broken venv launcher silently produced nothing).
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch: # lets you rehearse the build without cutting a tag
+
+permissions:
+  contents: write # create the release and upload the zip
+
+jobs:
+  portable:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # CPU torch on purpose: the CUDA build makes the backend several GB and
+      # only runs on matching hardware.
+      - name: Install backend deps (CPU torch)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r backend/requirements.txt pyinstaller pyinstaller-hooks-contrib
+
+      - name: Build the backend executable
+        run: |
+          python -m PyInstaller --noconfirm --name dpcleaner-server `
+            --onefile --noconsole `
+            --distpath backend/dist_cpu --workpath backend/build --specpath backend `
+            --paths backend backend/server_main.py
+          New-Item -ItemType Directory -Path src-tauri/binaries -Force | Out-Null
+          Copy-Item backend/dist_cpu/dpcleaner-server.exe `
+            src-tauri/binaries/dpcleaner-server-x86_64-pc-windows-msvc.exe
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # bundle.active is false, so this produces the executable and no installers.
+      - run: npm run tauri build
+
+      - name: Assemble the portable zip
+        run: powershell -File scripts/make-portable.ps1
+
+      # Fails the run rather than shipping something that cannot start: the
+      # build only requires the backend to *exist*, so a truncated or
+      # placeholder binary would otherwise sail through.
+      - name: Sanity-check the zip
+        run: |
+          $zip = 'dist-portable/DPcleaner-portable.zip'
+          $mb = (Get-Item $zip).Length / 1MB
+          "Zip is $([math]::Round($mb,1)) MB"
+          if ($mb -lt 200) { throw "Zip is only $([math]::Round($mb,1)) MB -- expected ~256 MB." }
+          $sha = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          "SHA-256: $sha"
+          "sha=$sha" >> $env:GITHUB_OUTPUT
+        id: check
+
+      - name: Upload to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create ${{ github.ref_name }} dist-portable/DPcleaner-portable.zip `
+            --title "${{ github.ref_name }} - portable build" `
+            --notes "Portable build. Extract anywhere and run ``desktop.exe`` -- no installation, nothing written outside the folder.`n`nSHA-256: ``${{ steps.check.outputs.sha }}```n`nRequires Windows 10/11 (64-bit) and WebView2, which Windows 11 includes and Windows 10 gets with Edge. Not code-signed, so SmartScreen will warn on first run." `
+            || gh release upload ${{ github.ref_name }} dist-portable/DPcleaner-portable.zip --clobber
+
+      # So a workflow_dispatch rehearsal still leaves something to inspect.
+      - uses: actions/upload-artifact@v4
+        if: "!startsWith(github.ref, 'refs/tags/')"
+        with:
+          name: DPcleaner-portable
+          path: dist-portable/DPcleaner-portable.zip

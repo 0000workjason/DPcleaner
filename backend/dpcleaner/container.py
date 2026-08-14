@@ -8,13 +8,13 @@ inject state directly.
 
 from __future__ import annotations
 
-from .fs_scanner import FilesystemScanner
-from .sscd_embedder import make_embedder, DEFAULT_MODEL
-from .sqlite_repo import SqliteEmbeddingRepository, purge_disk_cache, DEFAULT_DB
-from .trash_gateway import WindowsTrashGateway
-from .fs_renamer import FilesystemRenamer
 from .dedupe import DedupeService
+from .fs_renamer import FilesystemRenamer
+from .fs_scanner import FilesystemScanner
 from .rename import RenameService
+from .sqlite_repo import DEFAULT_DB, SqliteEmbeddingRepository, purge_disk_cache
+from .sscd_embedder import DEFAULT_MODEL, make_embedder
+from .trash_gateway import WindowsTrashGateway
 
 
 def _make_repo() -> SqliteEmbeddingRepository:

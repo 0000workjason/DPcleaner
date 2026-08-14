@@ -73,6 +73,7 @@ def test_corrupt_file_reads_as_empty_rather_than_crashing(cfg_path):
 
 def test_settings_endpoint_reports_a_failed_save(cfg_path, monkeypatch):
     from fastapi.testclient import TestClient
+
     from dpcleaner.app import app, configure_token
 
     configure_token(None)
@@ -116,6 +117,7 @@ def test_dev_mode_disables_the_token_deliberately(monkeypatch):
 
 def test_bad_token_is_rejected(cfg_path):
     from fastapi.testclient import TestClient
+
     from dpcleaner.app import app, configure_token
 
     configure_token("right-token")
@@ -149,6 +151,7 @@ def test_threshold_is_clamped(cfg_path):
 def test_data_dir_defaults_to_home(monkeypatch):
     monkeypatch.delenv("DPC_DATA_DIR", raising=False)
     import importlib
+
     from dpcleaner import paths
 
     importlib.reload(paths)
@@ -159,6 +162,7 @@ def test_data_dir_defaults_to_home(monkeypatch):
 def test_data_dir_follows_env(monkeypatch, tmp_path):
     monkeypatch.setenv("DPC_DATA_DIR", str(tmp_path))
     import importlib
+
     from dpcleaner import paths
 
     importlib.reload(paths)

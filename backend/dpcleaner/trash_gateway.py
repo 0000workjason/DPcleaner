@@ -5,11 +5,15 @@ Implements the ``interfaces.trash_gateway.TrashGateway`` port.
 
 from __future__ import annotations
 
+import logging
 import os
-import sys
-import struct
 import shutil
+import struct
+import sys
+
 from send2trash import send2trash
+
+logger = logging.getLogger(__name__)
 
 
 def to_trash(path: str) -> None:
@@ -112,7 +116,12 @@ def _bin_index(drive: str) -> dict[str, tuple[str, str]]:
             ip = os.path.join(sdir, name)
             try:
                 parsed = _parse_i(ip)
-            except Exception:  # noqa: BLE001 - skip unreadable/odd metadata
+            except Exception:
+                # Broad on purpose: a malformed $I can fail in more ways than
+                # OSError. One unreadable entry must not hide the rest of the
+                # bin, but a file skipped here is a file undo will report as
+                # missing -- so leave a trace rather than dropping it silently.
+                logger.debug("skipping unreadable recycle-bin metadata %s", ip, exc_info=True)
                 continue
             if not parsed:
                 continue
