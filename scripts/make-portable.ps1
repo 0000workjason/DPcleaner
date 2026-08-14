@@ -3,20 +3,23 @@
   Assemble the portable build into a self-contained folder and zip it.
 
 .DESCRIPTION
-  The portable build is the same binaries as the installer, plus three things:
+  This is the only thing the project ships. Alongside the two executables it
+  adds:
 
     portable.txt   the marker that switches the app to portable mode, so the
                    settings file, model cache and WebView2 profile all live in
                    .\data instead of the user's home directory
-    webview2\      a fixed-version WebView2 runtime, so the app runs on
-                   machines that have none installed
     data\.cache\   the SSCD model, pre-placed so the first scan works offline
+    webview2\      optional: a fixed-version WebView2 runtime. Without it the
+                   app uses whatever WebView2 the machine already has, which
+                   Windows 11 always ships and Windows 10 gets with Edge.
 
   Run `npm run tauri build` first -- this script only assembles what that
   produced. It never touches anything outside the output folder.
 
 .PARAMETER WebView2Runtime
-  Folder holding the extracted fixed-version WebView2 runtime. Download the
+  Optional. Folder holding the extracted fixed-version WebView2 runtime, for a
+  build that works even on machines with no WebView2 at all. Download the
   "Fixed Version" x64 archive from
   https://developer.microsoft.com/microsoft-edge/webview2/ and extract it; the
   folder should contain msedgewebview2.exe.
@@ -29,7 +32,7 @@
 #>
 [CmdletBinding()]
 param(
-  [Parameter(Mandatory = $true)][string]$WebView2Runtime,
+  [string]$WebView2Runtime,
   [string]$OutDir,
   [switch]$SkipZip
 )
@@ -51,14 +54,30 @@ function Need($path, $hint) {
 
 # ---- checks -------------------------------------------------------------
 Need (Join-Path $release 'desktop.exe') 'Run `npm run tauri build` first.'
-Need (Join-Path $release 'dpcleaner-server.exe') `
-  'Build the sidecar with PyInstaller (see README), then run `npm run tauri build`.'
-Need (Join-Path $WebView2Runtime 'msedgewebview2.exe') `
-  'This should be the extracted WebView2 Fixed Version runtime folder.'
 
-$serverSize = (Get-Item (Join-Path $release 'dpcleaner-server.exe')).Length
-if ($serverSize -lt 50MB) {
-  throw "dpcleaner-server.exe is only $([math]::Round($serverSize/1MB,1)) MB -- that looks like the CI placeholder, not a real backend build."
+# Take the backend straight from binaries\ rather than from target\release\.
+# That is where the build reads it from anyway, and bundling is turned off
+# (tauri.conf.json bundle.active), so Tauri has no reason to copy it next to
+# the exe. One source, no dependency on bundling behaviour.
+$serverSrc = @(Get-ChildItem (Join-Path $repo 'src-tauri\binaries') -Filter 'dpcleaner-server-*.exe' -ErrorAction SilentlyContinue)
+if ($serverSrc.Count -eq 0) {
+  throw "No dpcleaner-server-*.exe in src-tauri\binaries`n  Build it with PyInstaller first (see README)."
+}
+if ($serverSrc.Count -gt 1) {
+  throw "Expected one backend in src-tauri\binaries, found $($serverSrc.Count):`n  $($serverSrc.Name -join "`n  ")"
+}
+$serverSrc = $serverSrc[0]
+
+# The build only requires this file to exist, so a zero-byte placeholder gets
+# you an installer-sized zip containing a backend that cannot start, with
+# nothing along the way failing. This check is the only thing that catches it.
+if ($serverSrc.Length -lt 50MB) {
+  throw "$($serverSrc.Name) is only $([math]::Round($serverSrc.Length/1MB,1)) MB -- that is the placeholder, not a real backend build."
+}
+
+if ($WebView2Runtime) {
+  Need (Join-Path $WebView2Runtime 'msedgewebview2.exe') `
+    'This should be the extracted WebView2 Fixed Version runtime folder.'
 }
 
 # ---- stage --------------------------------------------------------------
@@ -67,12 +86,24 @@ New-Item -ItemType Directory -Path $stage -Force | Out-Null
 
 Write-Host 'Copying binaries...'
 Copy-Item (Join-Path $release 'desktop.exe') $stage
-Copy-Item (Join-Path $release 'dpcleaner-server.exe') $stage
+# desktop.exe looks for exactly this name beside itself.
+Copy-Item $serverSrc.FullName (Join-Path $stage 'dpcleaner-server.exe')
 
-Write-Host 'Copying WebView2 runtime...'
-Copy-Item $WebView2Runtime (Join-Path $stage 'webview2') -Recurse
+if ($WebView2Runtime) {
+  Write-Host 'Copying WebView2 runtime...'
+  Copy-Item $WebView2Runtime (Join-Path $stage 'webview2') -Recurse
+  $webviewNote = ''
+} else {
+  Write-Host 'No WebView2 runtime bundled -- the app will use the one already on the machine.'
+  $webviewNote = @'
 
-@'
+
+Requires WebView2, which Windows 11 includes and Windows 10 gets with
+Microsoft Edge. Practically every machine already has it.
+'@
+}
+
+@"
 This file makes DPcleaner run in portable mode.
 
 Settings, the model cache and the browser profile are all kept in the
@@ -80,8 +111,8 @@ Settings, the model cache and the browser profile are all kept in the
 computer, so you can run this from a USB stick and leave no trace.
 
 Delete this file and the same app behaves like a normal install, storing
-its settings in your user folder instead.
-'@ | Set-Content -Path (Join-Path $stage 'portable.txt') -Encoding utf8
+its settings in your user folder instead.$webviewNote
+"@ | Set-Content -Path (Join-Path $stage 'portable.txt') -Encoding utf8
 
 # ---- model --------------------------------------------------------------
 $modelDir = Join-Path $stage 'data\.cache\sscd'
