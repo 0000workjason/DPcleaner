@@ -27,11 +27,13 @@ Uses SSCD copy-detection embeddings to find different versions of the same artwo
 
 ## Download
 
-Grab an installer (`.msi` or `-setup.exe`) from [Releases](../../releases), double-click to install, and open — no Node/Rust/Python or any dev tooling required. The Python backend is bundled as a standalone executable via PyInstaller, packaged alongside the installer.
+Grab `DPcleaner-portable.zip` from [Releases](../../releases), extract it anywhere, and run `desktop.exe` — no installation, no Node/Rust/Python, no dev tooling. The Python backend is bundled as a standalone executable via PyInstaller and travels inside the zip.
 
-**Requirements:** Windows 10 or 11 (64-bit). The installer is **not code-signed**, so Windows SmartScreen will warn on first run ("Windows protected your PC") — click **More info → Run anyway**. Signing costs money this project doesn't have.
+Nothing is written outside the extracted folder. Settings, the model cache and the browser profile all live in `data\` next to the executable, so it runs from a USB stick and leaves the host machine untouched. (Delete `portable.txt` and the same binaries behave like a normal install, storing settings in your user folder.)
 
-> There's no automated release pipeline yet; installers are built locally by the maintainer (see [Building an installer](#building-an-installer)) and uploaded manually.
+**Requirements:** Windows 10 or 11 (64-bit), plus WebView2 — which Windows 11 includes and Windows 10 gets with Microsoft Edge, so practically every machine already has it. The executable is **not code-signed**, so Windows SmartScreen will warn on first run ("Windows protected your PC") — click **More info → Run anyway**. Signing costs money this project doesn't have.
+
+> There's no automated release pipeline yet; the zip is built locally by the maintainer (see [Building the portable zip](#building-the-portable-zip)) and uploaded manually.
 
 ## How it works
 
@@ -91,7 +93,7 @@ No. Everything runs locally — scanning, embedding, and the recycle-bin operati
 The recycle-bin integration (and its undo support) is implemented against the Windows `$Recycle.Bin` format directly. Cross-platform support isn't a current goal for this learning project.
 
 **Do I need an NVIDIA GPU?**
-No — the packaged installer bundles the CPU build of the model, which works everywhere. If you build from source, you can opt into a CUDA build for faster embedding (see [Development](#development)).
+No — the released zip bundles the CPU build of the model, which works everywhere. If you build from source, you can opt into a CUDA build for faster embedding (see [Development](#development)).
 
 ## Built with
 
@@ -102,7 +104,7 @@ No — the packaged installer bundles the CPU build of the model, which works ev
 <details>
 <summary><h2 style="display: inline;">Development</h2> (click to expand)</summary>
 
-Everything below is only needed if you want to contribute, read the source, or build your own installer.
+Everything below is only needed if you want to contribute, read the source, or build your own zip.
 
 ### Architecture
 
@@ -134,11 +136,11 @@ npm install
 python -m venv backend/.venv
 
 # Pick one based on your hardware:
-backend/.venv/Scripts/pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124   # NVIDIA GPU
+backend/.venv/Scripts/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124   # NVIDIA GPU
 # or
-backend/.venv/Scripts/pip install torch torchvision   # no GPU, CPU build
+backend/.venv/Scripts/python -m pip install torch torchvision   # no GPU, CPU build
 
-backend/.venv/Scripts/pip install -r backend/requirements.txt
+backend/.venv/Scripts/python -m pip install -r backend/requirements.txt
 ```
 
 ### Running in dev
@@ -147,18 +149,20 @@ backend/.venv/Scripts/pip install -r backend/requirements.txt
 npm run tauri dev
 ```
 
-### Building an installer
+### Building the portable zip
 
-The backend needs to be packaged into a standalone `dpcleaner-server.exe` with PyInstaller first, so Tauri can bundle it into the installer (via Tauri's [externalBin](https://tauri.app/develop/sidecar/) mechanism). **Use the CPU build of torch** for packaging, not the dev `backend/.venv` — if that one has the CUDA build installed, the resulting installer balloons to several GB and only works for people with a matching GPU.
+The backend is packaged into a standalone `dpcleaner-server.exe` with PyInstaller first, which Tauri picks up via its [externalBin](https://tauri.app/develop/sidecar/) mechanism. **Use the CPU build of torch** for packaging, not the dev `backend/.venv` — if that one has the CUDA build installed, the result balloons to several GB and only works for people with a matching GPU.
+
+Installers are deliberately switched off (`bundle.active` in `src-tauri/tauri.conf.json`), so `tauri build` produces just the executable.
 
 ```bash
 # 1. Create a dedicated CPU-only venv for packaging (one-time setup)
 python -m venv backend/.venv-cpu
-backend/.venv-cpu/Scripts/pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-backend/.venv-cpu/Scripts/pip install -r backend/requirements.txt pyinstaller pyinstaller-hooks-contrib
+backend/.venv-cpu/Scripts/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+backend/.venv-cpu/Scripts/python -m pip install -r backend/requirements.txt pyinstaller pyinstaller-hooks-contrib
 
 # 2. Package server_main.py into a single exe
-backend/.venv-cpu/Scripts/pyinstaller \
+backend/.venv-cpu/Scripts/python -m PyInstaller \
   --name dpcleaner-server --onefile --noconsole \
   --distpath backend/dist_cpu --workpath backend/build --specpath backend \
   --paths backend backend/server_main.py
@@ -167,46 +171,54 @@ backend/.venv-cpu/Scripts/pyinstaller \
 mkdir -p src-tauri/binaries
 cp backend/dist_cpu/dpcleaner-server.exe src-tauri/binaries/dpcleaner-server-x86_64-pc-windows-msvc.exe
 
-# 4. Full release build — .msi and -setup.exe land in src-tauri/target/release/bundle/
+# 4. Build the app (no installers -- just src-tauri/target/release/desktop.exe)
 npm run tauri build
+
+# 5. Assemble the zip -> dist-portable/DPcleaner-portable.zip
+powershell -File scripts/make-portable.ps1
 ```
 
-After building, you can run `src-tauri/target/release/desktop.exe` directly (same directory layout as a real install) to quickly verify things work, without running the installer every time.
+Step 5 copies both executables, writes the `portable.txt` marker, and places the SSCD model under `data\.cache\` (reusing your local copy if you have one, otherwise downloading it) so the first scan works with no network. It verifies the model's SHA-256, and refuses to package a backend smaller than 50 MB — which is what catches the zero-byte placeholder that `tauri build` otherwise accepts without complaint.
 
-### Portable build
+To spot-check without zipping, run `src-tauri/target/release/desktop.exe` directly.
 
-A no-install version that keeps everything inside its own folder — for running
-off a USB stick, or on a machine you'd rather not install anything on.
+### How portable mode works
 
-The switch is a marker file: with `portable.txt` next to the executable, the
+The switch is a marker file. With `portable.txt` next to the executable, the
 settings file, the SSCD model and the WebView2 profile all live in `.\data`
 instead of your home directory. Delete the marker and the same binaries behave
 like a normal install. The zip ships with the marker already in place, so users
 just extract and double-click.
 
 ```
-DPcleaner-portable\
-├── desktop.exe
-├── dpcleaner-server.exe
-├── portable.txt          marker — switches on portable mode
-├── webview2\             bundled fixed-version WebView2 runtime
-└── data\                 settings, model cache, WebView2 profile
+DPcleaner-portable|-- desktop.exe
+|-- dpcleaner-server.exe
+|-- portable.txt          marker -- switches on portable mode
+|-- webview2\             optional bundled WebView2 runtime
+`-- data\                 settings, model cache, WebView2 profile
 ```
 
-You need the **Fixed Version** x64 WebView2 runtime, downloaded and extracted
-from [Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/) —
-bundling it is what lets the app run on machines with no WebView2 installed.
+The app reads `DPC_DATA_DIR` for its data location, which the Tauri shell sets
+when it sees the marker. The WebView2 profile needs the window to be built in
+`lib.rs` rather than declared in `tauri.conf.json`, because only that form
+accepts an absolute data directory -- the config form is resolved relative to
+`%LOCALAPPDATA%` and rejects absolute paths, and Tauri otherwise forces the
+profile to `%LOCALAPPDATA%\<identifier>`, which is exactly the trace a portable
+build must not leave.
+
+**Bundling WebView2 is optional.** By default the zip relies on the runtime
+already present on the machine (Windows 11 always, Windows 10 with Edge). To
+cover machines that have none, download the **Fixed Version** x64 runtime from
+[Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/), extract
+it, and pass the folder:
 
 ```bash
-# after `npm run tauri build` (see above)
-powershell -File scripts/make-portable.ps1 -WebView2Runtime C:\path\to\webview2-fixed
+powershell -File scripts/make-portable.ps1 -WebView2Runtime C:\path	o\webview2-fixed
 ```
 
-The script copies the binaries, writes the marker, bundles the runtime, and
-places the SSCD model under `data\.cache\` (reusing your local copy if you
-have one, otherwise downloading it) so the first scan works with no network.
-It verifies the model's SHA-256 and refuses to package a mismatch. Output lands
-in `dist-portable\`. Expect roughly 350–450 MB zipped.
+That adds roughly 150 MB to the zip. `lib.rs` points WebView2 at the bundled
+copy via `WEBVIEW2_BROWSER_EXECUTABLE_FOLDER` whenever the `webview2\` folder
+is present, and falls back to the system one when it isn't.
 
 ### Testing
 

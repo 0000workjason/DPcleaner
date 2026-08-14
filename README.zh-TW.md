@@ -27,11 +27,13 @@
 
 ## 下載
 
-去 [Releases](../../releases) 下載安裝檔（`.msi` 或 `-setup.exe`），雙擊安裝、打開就能用，不需要裝 Node/Rust/Python 任何開發工具——後端已經用 PyInstaller 打包成獨立執行檔，跟著安裝檔一起帶走了。
+去 [Releases](../../releases) 下載 `DPcleaner-portable.zip`，解壓縮到任何地方，執行 `desktop.exe` 就能用——不用安裝，也不需要裝 Node/Rust/Python 任何開發工具。後端已經用 PyInstaller 打包成獨立執行檔，跟著 zip 一起帶走了。
 
-**系統需求：** Windows 10 或 11（64 位元）。安裝檔**沒有數位簽章**，Windows SmartScreen 第一次執行會跳警告（「Windows 已保護你的電腦」）——點**其他資訊 → 仍要執行**即可。簽章需要付費，這個專案沒有這筆預算。
+**不會在解壓資料夾以外寫入任何東西。** 設定、模型快取、瀏覽器資料全部放在執行檔旁邊的 `data\` 裡，所以放隨身碟也能跑，不會在別人的電腦留下痕跡。（把 `portable.txt` 刪掉，同一份執行檔就會恢復成一般模式，設定改存到你的使用者資料夾。）
 
-> 目前還沒有自動化的 Release 流程，安裝檔要維護者手動照下面「打包成安裝檔」的步驟本地建置後上傳。
+**系統需求：** Windows 10 或 11（64 位元），以及 WebView2——Windows 11 內建，Windows 10 裝了 Edge 就有，實務上幾乎每台電腦都已經有了。執行檔**沒有數位簽章**，Windows SmartScreen 第一次執行會跳警告（「Windows 已保護你的電腦」）——點**其他資訊 → 仍要執行**即可。簽章需要付費，這個專案沒有這筆預算。
+
+> 目前還沒有自動化的 Release 流程，zip 要維護者手動照下面「打包成可攜版 zip」的步驟本地建置後上傳。
 
 ## 操作示範
 
@@ -91,7 +93,7 @@ SSCD 模型（約 94 MB）會在第一次使用時下載並快取到本機。之
 回收筒整合（以及它的復原功能）是直接對接 Windows 的 `$Recycle.Bin` 格式實作的。跨平台支援目前不是這個學習專案的目標。
 
 **需要 NVIDIA 顯卡嗎？**
-不需要——打包好的安裝檔用的是 CPU 版模型，任何電腦都能跑。如果你是自己build，可以選擇裝 CUDA 版加速 embedding（見[開發](#開發)）。
+不需要——發布的 zip 用的是 CPU 版模型，任何電腦都能跑。如果你是自己build，可以選擇裝 CUDA 版加速 embedding（見[開發](#開發)）。
 
 ## 技術棧
 
@@ -102,7 +104,7 @@ SSCD 模型（約 94 MB）會在第一次使用時下載並快取到本機。之
 <details>
 <summary><h2 style="display: inline;">開發</h2>（點擊展開）</summary>
 
-以下內容只有想參與開發、看原始碼、或自己重新打包安裝檔的人才需要。
+以下內容只有想參與開發、看原始碼、或自己重新打包的人才需要。
 
 ### 架構
 
@@ -134,11 +136,11 @@ npm install
 python -m venv backend/.venv
 
 # 依你的硬體選一種安裝 torch/torchvision：
-backend/.venv/Scripts/pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124   # 有 NVIDIA 顯卡
+backend/.venv/Scripts/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124   # 有 NVIDIA 顯卡
 # 或
-backend/.venv/Scripts/pip install torch torchvision   # 沒有顯卡，用 CPU 版
+backend/.venv/Scripts/python -m pip install torch torchvision   # 沒有顯卡，用 CPU 版
 
-backend/.venv/Scripts/pip install -r backend/requirements.txt
+backend/.venv/Scripts/python -m pip install -r backend/requirements.txt
 ```
 
 ### 開發
@@ -147,18 +149,20 @@ backend/.venv/Scripts/pip install -r backend/requirements.txt
 npm run tauri dev
 ```
 
-### 打包成安裝檔
+### 打包成可攜版 zip
 
-後端要先用 PyInstaller 打包成獨立的 `dpcleaner-server.exe`，Tauri 才能把它一起包進安裝檔（Tauri 的 [externalBin](https://tauri.app/develop/sidecar/) 機制）。**打包用 CPU 版 torch**，不要用開發用的 `backend/.venv`（如果那邊裝的是 CUDA 版，包出來的安裝檔會變好幾 GB，而且只有裝對應顯卡的人能用）。
+後端要先用 PyInstaller 打包成獨立的 `dpcleaner-server.exe`，Tauri 透過 [externalBin](https://tauri.app/develop/sidecar/) 機制取用它。**打包用 CPU 版 torch**，不要用開發用的 `backend/.venv`（如果那邊裝的是 CUDA 版，包出來會變好幾 GB，而且只有裝對應顯卡的人能用）。
+
+安裝檔的產生已經刻意關閉（`src-tauri/tauri.conf.json` 的 `bundle.active`），所以 `tauri build` 只會產出執行檔。
 
 ```bash
 # 1. 建一個獨立的 CPU-only venv 專門用來打包（只需要建一次）
 python -m venv backend/.venv-cpu
-backend/.venv-cpu/Scripts/pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-backend/.venv-cpu/Scripts/pip install -r backend/requirements.txt pyinstaller pyinstaller-hooks-contrib
+backend/.venv-cpu/Scripts/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+backend/.venv-cpu/Scripts/python -m pip install -r backend/requirements.txt pyinstaller pyinstaller-hooks-contrib
 
 # 2. 把 server_main.py 打包成單一 exe
-backend/.venv-cpu/Scripts/pyinstaller \
+backend/.venv-cpu/Scripts/python -m PyInstaller \
   --name dpcleaner-server --onefile --noconsole \
   --distpath backend/dist_cpu --workpath backend/build --specpath backend \
   --paths backend backend/server_main.py
@@ -167,16 +171,18 @@ backend/.venv-cpu/Scripts/pyinstaller \
 mkdir -p src-tauri/binaries
 cp backend/dist_cpu/dpcleaner-server.exe src-tauri/binaries/dpcleaner-server-x86_64-pc-windows-msvc.exe
 
-# 4. 正式 build，產出 .msi 跟 -setup.exe 都在 src-tauri/target/release/bundle/
+# 4. build 應用程式（不產生安裝檔，只有 src-tauri/target/release/desktop.exe）
 npm run tauri build
+
+# 5. 組裝 zip → dist-portable/DPcleaner-portable.zip
+powershell -File scripts/make-portable.ps1
 ```
 
-打包完拿 `src-tauri/target/release/desktop.exe` 直接跑（跟真的裝完一模一樣的目錄結構）可以快速驗證，不用每次都跑一遍安裝程式。
+第 5 步會複製兩個執行檔、寫入 `portable.txt` 標記檔，並把 SSCD 模型放到 `data\.cache\`（本機已下載過就沿用，否則自動下載），這樣第一次掃描不需要網路。模型會做 SHA-256 驗證，而且會拒絕打包小於 50 MB 的後端——那正是用來擋下 `tauri build` 不會抱怨的 0 位元組佔位檔。
 
-### 可攜版（portable）
+想快速驗證可以直接跑 `src-tauri/target/release/desktop.exe`，不必每次都壓 zip。
 
-免安裝版本，所有東西都留在自己的資料夾裡 —— 適合放隨身碟，或在不想安裝任何
-東西的電腦上使用。
+### 可攜模式的運作方式
 
 切換方式是一個標記檔：執行檔旁邊有 `portable.txt` 時，設定檔、SSCD 模型和
 WebView2 的快取都會放在同層的 `data` 資料夾，而不是你的使用者資料夾。把標記檔
@@ -184,27 +190,29 @@ WebView2 的快取都會放在同層的 `data` 資料夾，而不是你的使用
 解壓縮後直接雙擊即可。
 
 ```
-DPcleaner-portable\
-├── desktop.exe
-├── dpcleaner-server.exe
-├── portable.txt          標記檔 —— 啟用可攜模式
-├── webview2\             自帶的固定版本 WebView2 runtime
-└── data\                 設定、模型快取、WebView2 資料
+DPcleaner-portable|-- desktop.exe
+|-- dpcleaner-server.exe
+|-- portable.txt          標記檔 —— 啟用可攜模式
+|-- webview2\             選用：自帶的 WebView2 runtime
+`-- data\                 設定、模型快取、WebView2 資料
 ```
 
-需要先取得 **Fixed Version** 的 x64 WebView2 runtime，從
-[Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/) 下載後解
-壓縮。把它一起包進去，才能在沒有安裝 WebView2 的電腦上執行。
+後端讀 `DPC_DATA_DIR` 決定資料位置，這個環境變數由 Tauri 外殼在偵測到標記檔時
+設定。WebView2 的資料夾則必須在 `lib.rs` 裡建立視窗才能指定——設定檔的形式是
+相對於 `%LOCALAPPDATA%` 解析的，絕對路徑會被直接忽略，而不指定的話 Tauri 會強制
+設成 `%LOCALAPPDATA%\<identifier>`，那正是可攜版不該留下的痕跡。
+
+**自帶 WebView2 是選用的。** 預設情況下 zip 依賴電腦上已有的 runtime（Windows 11
+一定有，Windows 10 裝了 Edge 就有）。想連完全沒有 WebView2 的電腦也能跑，就到
+[Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/) 下載
+**Fixed Version** 的 x64 runtime，解壓縮後把路徑傳給腳本：
 
 ```bash
-# 先完成上面的 npm run tauri build
 powershell -File scripts/make-portable.ps1 -WebView2Runtime C:\你的路徑\webview2-fixed
 ```
 
-腳本會複製執行檔、寫入標記檔、包進 runtime，並把 SSCD 模型放到
-`data\.cache\`（本機已下載過就直接沿用，否則自動下載），這樣第一次掃描不需要
-網路。模型會做 SHA-256 驗證，不符就拒絕打包。產出在 `dist-portable\`，壓縮後
-大約 350～450 MB。
+這會讓 zip 多出約 150 MB。只要 `webview2\` 資料夾存在，`lib.rs` 就會透過
+`WEBVIEW2_BROWSER_EXECUTABLE_FOLDER` 指向自帶的那份；不存在則自動使用系統的。
 
 ### 測試
 

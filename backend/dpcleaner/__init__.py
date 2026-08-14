@@ -11,4 +11,4 @@ Pipeline the use-cases drive: scan -> embed(+cache) -> cluster (flip-aware
 cosine + union-find) -> send unwanted copies to the OS recycle bin.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
