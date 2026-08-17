@@ -6,7 +6,7 @@ import { isLang, type Lang } from "./lang";
 import { filterGroups } from "./groups";
 
 export type Screen = "boot" | "folders" | "scanning" | "results";
-export type SortBy = "sim" | "ctime";
+export type SortBy = "sim" | "ctime" | "mtime";
 
 interface ViewState {
   sortBy: SortBy;

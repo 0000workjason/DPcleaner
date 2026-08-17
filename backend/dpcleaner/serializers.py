@@ -17,12 +17,16 @@ def _group_id(member_paths: list[str]) -> str:
     return h.hexdigest()[:12]
 
 
-def _ctime(path: str) -> float:
-    """File creation time (Windows: st_ctime is the real birth time). 0 on error."""
+def _times(path: str) -> tuple[float, float]:
+    """``(creation, modification)`` time. On Windows st_ctime is the real birth
+    time -- i.e. when the file landed on this volume, so a download or a copy
+    resets it. mtime survives a copy and some downloaders set it to the artwork's
+    publication date, which is why the UI offers both. Zeros on error."""
     try:
-        return os.stat(path).st_ctime
+        st = os.stat(path)
     except OSError:
-        return 0.0
+        return 0.0, 0.0
+    return st.st_ctime, st.st_mtime
 
 
 def groups_to_dict(
@@ -35,6 +39,7 @@ def groups_to_dict(
         members = []
         for m in g.members:
             images += 1
+            ctime, mtime = _times(m.path)
             members.append(
                 {
                     "path": m.path,
@@ -44,7 +49,8 @@ def groups_to_dict(
                     "width": m.width,
                     "height": m.height,
                     "size": m.size,
-                    "ctime": _ctime(m.path),
+                    "ctime": ctime,
+                    "mtime": mtime,
                 }
             )
         groups_out.append(

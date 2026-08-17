@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useStore } from "./store";
 import { useT } from "./i18n";
+import { isEditable } from "./util";
 import { Folders } from "./components/Folders";
 import { Scanning } from "./components/Scanning";
 import { Results } from "./components/Results";
@@ -43,14 +44,9 @@ export default function App() {
       // undoing a typo would otherwise pull the last trashed batch back out of
       // the Recycle Bin instead of undoing the text.
       const el = e.target as HTMLElement | null;
-      if (
-        el &&
-        (el.tagName === "INPUT" ||
-          el.tagName === "TEXTAREA" ||
-          el.tagName === "SELECT" ||
-          el.isContentEditable)
-      )
-        return;
+      // SELECT is only excluded here, not in isEditable: a dropdown has no text
+      // to undo, but it also has no context menu worth keeping.
+      if (el && (isEditable(el) || el.tagName === "SELECT")) return;
       // Nor while a modal owns the screen, or an action is already in flight.
       const s = useStore.getState();
       if (s.busy || s.compare || s.settingsOpen || s.renameTarget) return;
