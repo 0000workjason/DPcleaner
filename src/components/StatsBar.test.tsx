@@ -33,6 +33,7 @@ function data(): GroupsResponse {
             height: 1,
             size: 2000,
             ctime: 0,
+            mtime: 0,
           },
           {
             path: "b.png",
@@ -43,6 +44,7 @@ function data(): GroupsResponse {
             height: 1,
             size: 1000,
             ctime: 0,
+            mtime: 0,
           },
         ],
       },

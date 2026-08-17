@@ -25,7 +25,7 @@ beforeEach(() => {
   resetStore();
 });
 
-function member(path: string, ctime: number) {
+function member(path: string, ctime: number, mtime = ctime) {
   return {
     path,
     name: path,
@@ -35,6 +35,7 @@ function member(path: string, ctime: number) {
     height: 1,
     size: 1,
     ctime,
+    mtime,
   };
 }
 

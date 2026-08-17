@@ -11,7 +11,8 @@ export interface Member {
   width: number;
   height: number;
   size: number;
-  ctime: number; // file creation time (epoch seconds)
+  ctime: number; // file creation time (epoch seconds) — when it landed on this PC
+  mtime: number; // last-modified time (epoch seconds) — survives a copy
 }
 
 export interface Group {

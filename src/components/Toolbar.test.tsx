@@ -41,6 +41,7 @@ function data(exts: string[]): GroupsResponse {
           height: 1,
           size: 1,
           ctime: 0,
+          mtime: 0,
         })),
       },
     ],

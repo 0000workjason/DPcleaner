@@ -2,7 +2,10 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { THEME_KEY } from "./store";
+import { suppressContextMenu } from "./util";
 import "./styles.css";
+
+document.addEventListener("contextmenu", suppressContextMenu);
 
 // Paint the remembered theme before the first render. The real value lives in
 // the backend's settings file, which needs the engine to be up -- seconds on a

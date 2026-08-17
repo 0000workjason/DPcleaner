@@ -31,6 +31,7 @@ function group(id: string, paths: string[]): GroupsResponse["groups"][number] {
       height: 100,
       size: 1000,
       ctime: 0,
+      mtime: 0,
     })),
     sim_min: 0.9,
     sim_max: 0.99,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterGroups, groupNewest, sortGroups } from "./groups";
+import { filterGroups, groupNewest, sortGroups, sortMembers } from "./groups";
 import type { Group } from "./types";
 
 function member(over: Partial<Group["members"][number]> = {}) {
@@ -12,6 +12,7 @@ function member(over: Partial<Group["members"][number]> = {}) {
     height: 100,
     size: 1000,
     ctime: 0,
+    mtime: 0,
     ...over,
   };
 }
@@ -60,6 +61,27 @@ describe("sortGroups", () => {
     expect(sorted.map((g) => g.id)).toEqual(["high", "low"]);
   });
 
+  // ctime and mtime deliberately disagree: each group's mtime rank is the
+  // reverse of its ctime rank, so reading the wrong field cannot pass both.
+  const clash = [
+    makeGroup({ id: "a", members: [member({ ctime: 1, mtime: 9 })] }),
+    makeGroup({ id: "b", members: [member({ ctime: 5, mtime: 5 })] }),
+    makeGroup({ id: "c", members: [member({ ctime: 9, mtime: 1 })] }),
+  ];
+
+  it("sorts by mtime (newest first) when by is 'mtime'", () => {
+    expect(sortGroups(clash, "mtime").map((g) => g.id)).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
+    expect(sortGroups(clash, "ctime").map((g) => g.id)).toEqual([
+      "c",
+      "b",
+      "a",
+    ]);
+  });
+
   it("does not mutate the original array", () => {
     const groups = [
       makeGroup({ id: "a", sim_min: 0.5 }),
@@ -68,6 +90,45 @@ describe("sortGroups", () => {
     const original = [...groups];
     sortGroups(groups, "sim");
     expect(groups).toEqual(original);
+  });
+});
+
+describe("sortMembers", () => {
+  const g = makeGroup({
+    members: [
+      member({ path: "mid", ctime: 5, mtime: 5 }),
+      member({ path: "old", ctime: 1, mtime: 9 }),
+      member({ path: "new", ctime: 9, mtime: 1 }),
+    ],
+  });
+
+  it("orders members newest first, by the requested clock", () => {
+    expect(sortMembers(g, "ctime").map((m) => m.path)).toEqual([
+      "new",
+      "mid",
+      "old",
+    ]);
+    expect(sortMembers(g, "mtime").map((m) => m.path)).toEqual([
+      "old",
+      "mid",
+      "new",
+    ]);
+  });
+
+  // There is no per-member similarity in the payload (only a range per group),
+  // so "sim" has to fall back rather than leave tiles in backend order.
+  it("falls back to ctime under the similarity sort", () => {
+    expect(sortMembers(g, "sim").map((m) => m.path)).toEqual([
+      "new",
+      "mid",
+      "old",
+    ]);
+  });
+
+  it("does not mutate the group", () => {
+    const before = g.members.map((m) => m.path);
+    sortMembers(g, "mtime");
+    expect(g.members.map((m) => m.path)).toEqual(before);
   });
 });
 

@@ -33,6 +33,7 @@ function makeGroup(over: Partial<Group> = {}): Group {
         height: 200,
         size: 2000,
         ctime: 0,
+        mtime: 0,
       },
       {
         path: "b.png",
@@ -43,6 +44,7 @@ function makeGroup(over: Partial<Group> = {}): Group {
         height: 200,
         size: 1000,
         ctime: 0,
+        mtime: 0,
       },
     ],
     ...over,
@@ -101,5 +103,42 @@ describe("GroupCard", () => {
     render(<GroupCard group={makeGroup()} />);
     fireEvent.contextMenu(screen.getByTitle("b.png"));
     expect(useStore.getState().compare).toEqual(["b.png"]);
+  });
+
+  // Tiles arrive in whatever order the grouping produced; the card orders them
+  // itself. ctime and mtime disagree so the wrong field cannot pass both.
+  const shuffled = makeGroup({
+    members: [
+      { ...makeGroup().members[0], path: "mid.png", ctime: 5, mtime: 5 },
+      { ...makeGroup().members[0], path: "old.png", ctime: 1, mtime: 9 },
+      { ...makeGroup().members[0], path: "new.png", ctime: 9, mtime: 1 },
+    ],
+  });
+
+  const renderedOrder = () =>
+    [...document.querySelectorAll(".tile-name")].map((e) =>
+      e.getAttribute("title"),
+    );
+
+  it("renders tiles newest first", () => {
+    render(<GroupCard group={shuffled} />);
+    expect(renderedOrder()).toEqual(["new.png", "mid.png", "old.png"]);
+  });
+
+  it("re-orders tiles when the sort switches to mtime", () => {
+    useStore.setState((s) => ({ view: { ...s.view, sortBy: "mtime" } }));
+    render(<GroupCard group={shuffled} />);
+    expect(renderedOrder()).toEqual(["old.png", "mid.png", "new.png"]);
+  });
+
+  it("hands compare the members in the order they are shown", async () => {
+    const user = userEvent.setup();
+    render(<GroupCard group={shuffled} />);
+    await user.click(screen.getByText("Compare"));
+    expect(useStore.getState().compare).toEqual([
+      "new.png",
+      "mid.png",
+      "old.png",
+    ]);
   });
 });

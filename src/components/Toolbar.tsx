@@ -4,6 +4,7 @@ import { useT } from "../i18n";
 
 const SORTS: { value: SortBy; key: string }[] = [
   { value: "ctime", key: "sort.ctime" },
+  { value: "mtime", key: "sort.mtime" },
   { value: "sim", key: "sort.sim" },
 ];
 

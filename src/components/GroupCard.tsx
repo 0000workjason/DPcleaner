@@ -2,6 +2,7 @@ import { Thumb } from "./Thumb";
 import { useStore } from "../store";
 import { useT } from "../i18n";
 import { fmtSize } from "../util";
+import { sortMembers } from "../groups";
 import type { Group } from "../types";
 
 export function GroupCard({ group }: { group: Group }) {
@@ -10,8 +11,12 @@ export function GroupCard({ group }: { group: Group }) {
   const toggleSelect = useStore((s) => s.toggleSelect);
   const selectPaths = useStore((s) => s.selectPaths);
   const openCompare = useStore((s) => s.openCompare);
+  const sortBy = useStore((s) => s.view.sortBy);
 
-  const memberPaths = group.members.map((m) => m.path);
+  // Tiles follow the same clock as the gallery's group order, newest first --
+  // the freshest copy is the one being decided about, so it leads.
+  const members = sortMembers(group, sortBy);
+  const memberPaths = members.map((m) => m.path);
   const allSelected = memberPaths.every((p) => selection.has(p));
 
   // similarity as a percentage; collapse to one value when the range rounds equal
@@ -42,7 +47,7 @@ export function GroupCard({ group }: { group: Group }) {
       </div>
 
       <div className="tiles">
-        {group.members.map((m) => {
+        {members.map((m) => {
           const selected = selection.has(m.path);
           return (
             <div
@@ -60,7 +65,10 @@ export function GroupCard({ group }: { group: Group }) {
                 <Thumb
                   path={m.path}
                   size={360}
-                  version={`${m.size}-${m.ctime}`}
+                  // mtime, not ctime: the backend's thumb cache is keyed on
+                  // mtime, so an in-place edit that keeps the size would
+                  // otherwise keep serving the stale tile.
+                  version={`${m.size}-${m.mtime}`}
                 />
                 <label
                   className="badge pick"
