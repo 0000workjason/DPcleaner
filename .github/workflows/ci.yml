@@ -8,8 +8,8 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
@@ -23,8 +23,8 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
@@ -46,8 +46,8 @@ jobs:
       # every path the backend persists follows this variable (paths.py).
       DPC_DATA_DIR: ${{ github.workspace }}/.dpc-ci
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       # torchvision on top of what `backend` installs: no other test builds an
@@ -55,7 +55,7 @@ jobs:
       - run: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
       - run: pip install -r backend/requirements.txt
       - name: Cache the SSCD checkpoint
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .dpc-ci/.cache/sscd
           # Keyed on the hash the loader already verifies, so swapping the model
@@ -69,7 +69,7 @@ jobs:
       run:
         working-directory: src-tauri
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
