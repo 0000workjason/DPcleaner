@@ -33,6 +33,36 @@ jobs:
       - run: ruff format --check backend
       - run: pytest backend/tests
 
+  # The only end-to-end check of what this app is for: does it actually cluster
+  # variants of the same artwork together? Kept out of `backend` because that
+  # job is 30 offline seconds, while this one wants torchvision and a 94 MB
+  # checkpoint from Meta's CDN -- merged, one CDN hiccup would redden lint too.
+  engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15 # the test joins on a worker with a 600 s timeout
+    env:
+      DPC_RUN_SLOW: "1" # the test skips itself without this
+      # Keeps the checkpoint inside the workspace so actions/cache can see it;
+      # every path the backend persists follows this variable (paths.py).
+      DPC_DATA_DIR: ${{ github.workspace }}/.dpc-ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # torchvision on top of what `backend` installs: no other test builds an
+      # embedder, and SSCDEmbedder needs its transforms.
+      - run: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install -r backend/requirements.txt
+      - name: Cache the SSCD checkpoint
+        uses: actions/cache@v4
+        with:
+          path: .dpc-ci/.cache/sscd
+          # Keyed on the hash the loader already verifies, so swapping the model
+          # misses the cache on its own -- no version number to remember.
+          key: sscd-9f26bd4c848cc19b73d2ae92eea6e04886f61a7b764ceb7a13aeee62e6a6db56
+      - run: pytest backend/tests/test_engine_parity.py -v
+
   rust:
     runs-on: windows-latest
     defaults:
