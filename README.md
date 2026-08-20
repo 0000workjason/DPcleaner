@@ -33,7 +33,7 @@ Nothing is written outside the extracted folder. Settings, the model cache and t
 
 **Requirements:** Windows 10 or 11 (64-bit), plus WebView2 — which Windows 11 includes and Windows 10 gets with Microsoft Edge, so practically every machine already has it. The executable is **not code-signed**, so Windows SmartScreen will warn on first run ("Windows protected your PC") — click **More info → Run anyway**. Signing costs money this project doesn't have.
 
-> There's no automated release pipeline yet; the zip is built locally by the maintainer (see [Building the portable zip](#building-the-portable-zip)) and uploaded manually.
+> Releases are built by GitHub Actions from a version tag — the zip you download is the one CI produced, and its SHA-256 is printed in the release notes. Building it yourself is still documented under [Building the portable zip](#building-the-portable-zip).
 
 ## How it works
 
