@@ -77,7 +77,7 @@ Nothing is written outside the extracted folder. Settings, the model cache and t
 
 🔢 **Batch rename with undo.** Renumber every image in a folder to a clean sequence (001, 002…), also undoable.
 
-🔎 **Filter & sort.** Narrow the results by extension, filename, or minimum group size; sort by similarity or creation time.
+🔎 **Filter & sort.** Narrow the results by extension, filename, or minimum group size; sort by similarity, creation time, or last-modified time — the chosen clock orders the thumbnails inside each group too, newest first.
 
 🌐 **Multi-language.** Traditional Chinese, Simplified Chinese, English, and Japanese, with dark/light theme.
 
