@@ -1,0 +1,34 @@
+# Keeps an eye on dependencies so a security fix doesn't sit unnoticed --
+# Pillow in particular decodes untrusted images straight off Pixiv and Twitter.
+#
+# Monthly and grouped on purpose: one PR per ecosystem, so a solo project gets
+# at most four to review a month instead of twenty.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: monthly }
+    open-pull-requests-limit: 5
+    groups:
+      npm: { patterns: ["*"] }
+
+  - package-ecosystem: pip
+    directory: /backend # requirements.txt lives here, not at the root
+    schedule: { interval: monthly }
+    open-pull-requests-limit: 5
+    groups:
+      pip: { patterns: ["*"] }
+
+  - package-ecosystem: cargo
+    directory: /src-tauri
+    schedule: { interval: monthly }
+    open-pull-requests-limit: 5
+    groups:
+      cargo: { patterns: ["*"] }
+
+  - package-ecosystem: github-actions
+    directory: / # dependabot finds .github/workflows from the root itself
+    schedule: { interval: monthly }
+    open-pull-requests-limit: 5
+    groups:
+      actions: { patterns: ["*"] }

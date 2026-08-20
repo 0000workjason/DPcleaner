@@ -74,6 +74,7 @@ jobs:
         run: |
           gh release create ${{ github.ref_name }} dist-portable/DPcleaner-portable.zip `
             --title "${{ github.ref_name }} - portable build" `
+            --generate-notes `
             --notes "Portable build. Extract anywhere and run ``desktop.exe`` -- no installation, nothing written outside the folder.`n`nSHA-256: ``${{ steps.check.outputs.sha }}```n`nRequires Windows 10/11 (64-bit) and WebView2, which Windows 11 includes and Windows 10 gets with Edge. Not code-signed, so SmartScreen will warn on first run." `
             || gh release upload ${{ github.ref_name }} dist-portable/DPcleaner-portable.zip --clobber
 
