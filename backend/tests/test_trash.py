@@ -191,6 +191,8 @@ class TestRestoreMany:
         ok, failed = restore_many([str(target)])
 
         assert ok == []
+        assert [p for p, _ in failed] == [str(target)]
+        assert "未覆蓋" in failed[0][1]  # the UI shows this reason verbatim
         assert target.read_bytes() == b"newer file"
         assert rp.exists()  # still recoverable
 
